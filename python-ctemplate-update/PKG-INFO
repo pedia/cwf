@@ -1,0 +1,10 @@
+Metadata-Version: 1.0
+Name: python-ctemplate
+Version: 0.7
+Summary: Python wrapper for the ctemplate library
+Home-page: UNKNOWN
+Author: Bastian Kleineidam
+Author-email: calvin@debian.org
+License: BSD, see COPYING
+Description: UNKNOWN
+Platform: UNKNOWN

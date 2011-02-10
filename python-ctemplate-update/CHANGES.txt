@@ -1,0 +1,23 @@
+0.7
+  * Rename TS_RELOAD to the changed TS_SHOULD_RELOAD. Fixes compilation
+    with ctemplate >= 0.8.
+
+0.6
+  * Wrap RegisterTemplateFilename() and GetBadSyntaxList() functions
+
+0.5
+  * Wrap Dictionary.AddIncludeDictionary() function
+
+0.4
+  * Fix more reference counts
+  * Don't delete templates, leave that to google::ClearCache()
+  * Register a cleanup function calling google::ClearCache()
+
+0.3
+  * Fix reference counting for string values.
+
+0.2
+  * Wrap Dictionary.SetValueAndShowSection() function.
+
+0.1
+  * Initial release.

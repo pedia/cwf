@@ -1,0 +1,3 @@
+include README.txt TODO.txt CHANGES.txt
+include tests/test.py tests/test.tpl
+include MANIFEST.in
