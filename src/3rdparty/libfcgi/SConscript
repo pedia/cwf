@@ -1,0 +1,78 @@
+Import('env')
+Import('Posix')
+Import('cpp_')
+
+src = ['fcgi_stdio.c', 'fcgiapp.c', 'fcgio.cpp']
+
+if env["PLATFORM"] in Posix:
+  src += ['os_unix.c']
+else:
+  src += ['os_win32.c']
+fcgi = env.StaticLibrary('fcgi', src)
+
+to_export = {'fcgi' : fcgi}
+Return('to_export')
+
+"""
+import os
+
+Import("env")
+
+a=Glob('*.cc')
+src = []
+test_src = []
+
+for i in a:
+  si = str(i)
+  if -1 != si.rfind('_test.cc'):
+     test_src.append(i)
+  elif -1 != si.rfind('_suite.cc'):
+     pass
+  else:
+     src.append(i)
+
+Import('Helper')
+
+helper=Helper()
+
+def Remove(List, Item):
+  for i in List:
+    if str(i) == Item:
+      List.remove(i)
+      break
+
+Remove(src, 'cwfcontrolI.cc')
+
+cloned = env.Clone()
+cloned.Append(CPPPATH=[Dir('.')])
+cloned.Append(LIBS = ['boost_regex', 'arch', 'base', 'breakpad'
+  , 'mysqlpp', 'mysqlclient', 'dbpool', 'dbdescslice'
+  , 'feedslice', 'feed'
+  , 'ctemplate', 'expat', 'fastcgi', 'oldslice', 'account'])
+cloned.Append(LIBPATH = ['.', '#/base', '#/arch', '#/dbpool', '#/dbdesc'
+  , '#/oldslice', '#/feed', '#/cwf/libfcgi', '#/account', '#/crash'])
+#cloned.Append(LINKFLAGS = "-Wl,--whole-archive feed/libfeed.a -lbase -Wl,--no-whole-archive")
+helper.ForceLink(cloned, "feed/libfeed.a base/libbase.a")
+# helper.ForceLink(cloned, "/usr/local/lib/libtcmalloc_and_profiler.a")
+cloned.Program('cwfd', src)
+
+static_src = src[:]
+
+cloned.StaticLibrary('cwfd', static_src)
+
+Remove(static_src, 'cwfmain.cc')
+cloned.StaticLibrary('cwf', static_src)
+
+slice_src = []
+a=Glob('*.cpp')
+for i in a:
+  slice_src.append(i)
+
+Remove(slice_src, 'http.cpp')
+if slice_src:
+  cloned.StaticLibrary('cwfslice', slice_src)
+
+fcgi_src = Glob('libfcgi/*.c')
+Remove(fcgi_src, 'libfcgi/os_win32.c')
+env.StaticLibrary('fastcgi', fcgi_src)
+"""
