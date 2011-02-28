@@ -41,7 +41,10 @@
 #include "base3/logging.h"
 #include "base3/time.h"
 
-class Lock;
+namespace boost {
+  class mutex;
+};
+
 class Pickle;
 
 namespace base {
@@ -681,7 +684,8 @@ class StatisticsRecorder {
   static HistogramMap* histograms_;
 
   // lock protects access to the above map.
-  static Lock* lock_;
+  // static Lock* lock_;
+  static boost::mutex* lock_;
 
   // Dump all known histograms to log.
   static bool dump_on_exit_;

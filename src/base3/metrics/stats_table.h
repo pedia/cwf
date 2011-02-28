@@ -25,8 +25,11 @@
 
 #include "base3/basictypes.h"
 #include "base3/hashmap.h"
-#include "base3/lock.h"
-#include "base3/thread_local_storage.h"
+// #include "base3/lock.h"
+// #include "base3/thread_local_storage.h"
+
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/tss.hpp>
 
 namespace base {
 
@@ -145,7 +148,7 @@ class StatsTable {
 
   // The SlotReturnFunction is called at thread exit for each thread
   // which used the StatsTable.
-  static void SlotReturnFunction(void* data);
+  static void SlotReturnFunction(TLSData* data);
 
   // Locates a free slot in the table.  Returns a number > 0 on success,
   // or 0 on failure.  The caller must hold the shared_memory lock when
@@ -176,7 +179,7 @@ class StatsTable {
   Private* impl_;
 
   // The counters_lock_ protects the counters_ hash table.
-  Lock counters_lock_;
+  boost::mutex counters_lock_;
 
   // The counters_ hash map is an in-memory hash of the counters.
   // It is used for quick lookup of counters, but is cannot be used
@@ -184,7 +187,8 @@ class StatsTable {
   // we don't have a counter in our hash table, another process may
   // have created it.
   CountersMap counters_;
-  TLSSlot tls_index_;
+  // TLSSlot tls_index_;
+  boost::thread_specific_ptr<TLSData> tls_index_;
 
   static StatsTable* global_table_;
 

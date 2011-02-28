@@ -7,7 +7,7 @@
 #pragma once
 
 #include "base3/atomic_ref_count.h"
-#include "base3/thread_collision_warner.h"
+// #include "base3/thread_collision_warner.h"
 
 namespace base {
 
@@ -34,7 +34,7 @@ class RefCountedBase {
   mutable bool in_dtor_;
 #endif
 
-  DFAKE_MUTEX(add_release_);
+  // DFAKE_MUTEX(add_release_);
 
   DISALLOW_COPY_AND_ASSIGN(RefCountedBase);
 };

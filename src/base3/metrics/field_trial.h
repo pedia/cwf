@@ -66,7 +66,8 @@
 #include <map>
 #include <string>
 
-#include "base3/lock.h"
+// #include "base3/lock.h"
+#include <boost/thread/mutex.hpp>
 #include "base3/ref_counted.h"
 // #include "base3/time.h"
 
@@ -226,7 +227,8 @@ class FieldTrialList {
   // TimeTicks application_start_time_;
 
   // Lock for access to registered_.
-  Lock lock_;
+  // Lock lock_;
+  boost::mutex lock_;
   RegistrationList registered_;
 
   DISALLOW_COPY_AND_ASSIGN(FieldTrialList);

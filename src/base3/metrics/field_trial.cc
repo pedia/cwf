@@ -82,7 +82,8 @@ FieldTrialList::FieldTrialList() /*: application_start_time_(TimeTicks::Now())*/
 }
 
 FieldTrialList::~FieldTrialList() {
-  AutoLock auto_lock(lock_);
+  // AutoLock auto_lock(lock_);
+  boost::mutex::scoped_lock auto_lock(lock_);
   while (!registered_.empty()) {
     RegistrationList::iterator it = registered_.begin();
     it->second->Release();
@@ -98,7 +99,8 @@ void FieldTrialList::Register(FieldTrial* trial) {
     register_without_global_ = true;
     return;
   }
-  AutoLock auto_lock(global_->lock_);
+  // AutoLock auto_lock(global_->lock_);
+  boost::mutex::scoped_lock auto_lock(global_->lock_);
   DCHECK(!global_->PreLockedFind(trial->name()));
   trial->AddRef();
   global_->registered_[trial->name()] = trial;
@@ -124,7 +126,8 @@ std::string FieldTrialList::FindFullName(const std::string& name) {
 FieldTrial* FieldTrialList::Find(const std::string& name) {
   if (!global_)
     return NULL;
-  AutoLock auto_lock(global_->lock_);
+  // AutoLock auto_lock(global_->lock_);
+  boost::mutex::scoped_lock auto_lock(global_->lock_);
   return global_->PreLockedFind(name);
 }
 
@@ -140,7 +143,8 @@ void FieldTrialList::StatesToString(std::string* output) {
   if (!global_)
     return;
   DCHECK(output->empty());
-  AutoLock auto_lock(global_->lock_);
+  // AutoLock auto_lock(global_->lock_);
+  boost::mutex::scoped_lock auto_lock(global_->lock_);
   for (RegistrationList::iterator it = global_->registered_.begin();
        it != global_->registered_.end(); ++it) {
     const std::string name = it->first;

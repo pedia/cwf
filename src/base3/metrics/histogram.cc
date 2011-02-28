@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <string>
 
-#include "base3/lock.h"
+#include <boost/thread/mutex.hpp>
 #include "base3/logging.h"
 #include "base3/pickle.h"
 #include "base3/stringprintf.h"
@@ -893,7 +893,7 @@ double CustomHistogram::GetBucketSize(Count current, size_t i) const {
 // provide support for all future calls.
 StatisticsRecorder::StatisticsRecorder() {
   DCHECK(!histograms_);
-  lock_ = new Lock;
+  lock_ = new boost::mutex();
   histograms_ = new HistogramMap;
 }
 
@@ -927,7 +927,8 @@ void StatisticsRecorder::Register(Histogram* histogram) {
   if (!histograms_)
     return;
   const std::string name = histogram->histogram_name();
-  AutoLock auto_lock(*lock_);
+  // AutoLock auto_lock(*lock_);
+  boost::mutex::scoped_lock auto_lock(*lock_);
   // Avoid overwriting a previous registration.
   if (histograms_->end() == histograms_->find(name))
     (*histograms_)[name] = histogram;
@@ -981,7 +982,8 @@ void StatisticsRecorder::WriteGraph(const std::string& query,
 void StatisticsRecorder::GetHistograms(Histograms* output) {
   if (!histograms_)
     return;
-  AutoLock auto_lock(*lock_);
+  // AutoLock auto_lock(*lock_);
+  boost::mutex::scoped_lock auto_lock(*lock_);
   for (HistogramMap::iterator it = histograms_->begin();
        histograms_->end() != it;
        ++it) {
@@ -994,7 +996,8 @@ bool StatisticsRecorder::FindHistogram(const std::string& name,
                                        scoped_refptr<Histogram>* histogram) {
   if (!histograms_)
     return false;
-  AutoLock auto_lock(*lock_);
+  // AutoLock auto_lock(*lock_);
+  boost::mutex::scoped_lock auto_lock(*lock_);
   HistogramMap::iterator it = histograms_->find(name);
   if (histograms_->end() == it)
     return false;
@@ -1005,7 +1008,8 @@ bool StatisticsRecorder::FindHistogram(const std::string& name,
 // private static
 void StatisticsRecorder::GetSnapshot(const std::string& query,
                                      Histograms* snapshot) {
-  AutoLock auto_lock(*lock_);
+  // AutoLock auto_lock(*lock_);
+  boost::mutex::scoped_lock auto_lock(*lock_);
   for (HistogramMap::iterator it = histograms_->begin();
        histograms_->end() != it;
        ++it) {
@@ -1017,7 +1021,8 @@ void StatisticsRecorder::GetSnapshot(const std::string& query,
 // static
 StatisticsRecorder::HistogramMap* StatisticsRecorder::histograms_ = NULL;
 // static
-Lock* StatisticsRecorder::lock_ = NULL;
+// Lock* StatisticsRecorder::lock_ = NULL;
+boost::mutex* StatisticsRecorder::lock_ = NULL;
 // static
 bool StatisticsRecorder::dump_on_exit_ = false;
 

@@ -4,14 +4,25 @@
 
 #include "base3/metrics/stats_table.h"
 
+// for getpid
+#if defined(OS_WIN)
+#include <process.h>
+#elif defined(OS_LINUX)
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
+#include <boost/thread/thread.hpp>
+#include <boost/interprocess/managed_shared_memory.hpp>
+#include <boost/interprocess/sync/interprocess_mutex.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
+namespace bip = boost::interprocess;
+
 #include "base3/logging.h"
-#include "base3/platform_thread.h"
-#include "base3/process_util.h"
 #include "base3/scoped_ptr.h"
-#include "base3/shared_memory.h"
 #include "base3/string_piece.h"
 #include "base3/string_util.h"
-#include "base3/thread_local_storage.h"
+
 
 #if defined(OS_POSIX)
 #include "errno.h"
@@ -105,7 +116,8 @@ class StatsTable::Private {
   static Private* New(const std::string& name, int size,
                                 int max_threads, int max_counters);
 
-  SharedMemory* shared_memory() { return &shared_memory_; }
+  // SharedMemory* shared_memory() { return &shared_memory_; }
+  bip::interprocess_mutex & mutex() { return mutex_; }
 
   // Accessors for our header pointers
   TableHeader* table_header() const { return table_header_; }
@@ -119,7 +131,7 @@ class StatsTable::Private {
     return &thread_names_table_[
       (slot_id-1) * (StatsTable::kMaxThreadNameLength)];
   }
-  PlatformThreadId* thread_tid(int slot_id) const {
+  boost::thread::id* thread_tid(int slot_id) const {
     return &(thread_tid_table_[slot_id-1]);
   }
   int* thread_pid(int slot_id) const {
@@ -145,10 +157,14 @@ class StatsTable::Private {
   // Initializes our in-memory pointers into a pre-created StatsTable.
   void ComputeMappedPointers(void* memory);
 
-  SharedMemory shared_memory_;
+  // SharedMemory shared_memory_;
+  bip::managed_shared_memory* shared_memory_;
+  bip::interprocess_mutex mutex_;
+
   TableHeader* table_header_;
   char* thread_names_table_;
-  PlatformThreadId* thread_tid_table_;
+  // boost::thread::id* thread_tid_table_;
+  boost::thread::id* thread_tid_table_;
   int* thread_pid_table_;
   char* counter_names_table_;
   int* data_table_;
@@ -160,21 +176,28 @@ StatsTable::Private* StatsTable::Private::New(const std::string& name,
                                               int max_threads,
                                               int max_counters) {
   scoped_ptr<Private> priv(new Private());
-  if (!priv->shared_memory_.CreateNamed(name, true, size))
+  priv->shared_memory_ = new bip::managed_shared_memory(
+    bip::create_only, name.c_str(), size
+    );
+  // TODO: maybe throw
+  TableHeader* header = priv->shared_memory_->construct<TableHeader>(
+    bip::anonymous_instance)();
+#if 0
     return NULL;
   if (!priv->shared_memory_.Map(size))
     return NULL;
   void* memory = priv->shared_memory_.memory();
 
   TableHeader* header = static_cast<TableHeader*>(memory);
+#endif
 
   // If the version does not match, then assume the table needs
   // to be initialized.
   if (header->version != kTableVersion)
-    priv->InitializeTable(memory, size, max_counters, max_threads);
+    priv->InitializeTable(header, size, max_counters, max_threads);
 
   // We have a valid table, so compute our pointers.
-  priv->ComputeMappedPointers(memory);
+  priv->ComputeMappedPointers(header);
 
   return priv.release();
 }
@@ -209,7 +232,7 @@ void StatsTable::Private::ComputeMappedPointers(void* memory) {
             max_threads() * StatsTable::kMaxThreadNameLength;
   offset += AlignOffset(offset);
 
-  thread_tid_table_ = reinterpret_cast<PlatformThreadId*>(data + offset);
+  thread_tid_table_ = reinterpret_cast<boost::thread::id*>(data + offset);
   offset += sizeof(int) * max_threads();
   offset += AlignOffset(offset);
 
@@ -267,7 +290,7 @@ StatsTable::~StatsTable() {
 
   // Return ThreadLocalStorage.  At this point, if any registered threads
   // still exist, they cannot Unregister.
-  tls_index_.Free();
+  tls_index_.release();
 
   // Cleanup our shared memory.
   delete impl_;
@@ -286,7 +309,8 @@ int StatsTable::RegisterThread(const std::string& name) {
   // so that two threads don't grab the same slot.  Fortunately,
   // thread creation shouldn't happen in inner loops.
   {
-    SharedMemoryAutoLock lock(impl_->shared_memory());
+    // SharedMemoryAutoLock lock(impl_->shared_memory());
+    bip::scoped_lock<bip::interprocess_mutex> lock(impl_->mutex());
     slot = FindEmptyThread();
     if (!slot) {
       return 0;
@@ -298,21 +322,23 @@ int StatsTable::RegisterThread(const std::string& name) {
       thread_name = kUnknownName;
     strlcpy(impl_->thread_name(slot), thread_name.c_str(),
             kMaxThreadNameLength);
-    *(impl_->thread_tid(slot)) = PlatformThread::CurrentId();
-    *(impl_->thread_pid(slot)) = GetCurrentProcId();
+    *(impl_->thread_tid(slot)) = // PlatformThread::CurrentId();
+      boost::this_thread::get_id();
+    *(impl_->thread_pid(slot)) = getpid(); // GetCurrentProcId();
   }
 
   // Set our thread local storage.
   TLSData* data = new TLSData;
   data->table = this;
   data->slot = slot;
-  tls_index_.Set(data);
+  // tls_index_.Set(data);
+  tls_index_.reset(data);
   return slot;
 }
 
 StatsTable::TLSData* StatsTable::GetTLSData() const {
-  TLSData* data =
-    static_cast<TLSData*>(tls_index_.Get());
+  TLSData* data = tls_index_.get();
+    // static_cast<TLSData*>(tls_index_.Get());
   if (!data)
     return NULL;
 
@@ -335,15 +361,16 @@ void StatsTable::UnregisterThread(TLSData* data) {
   *name = '\0';
 
   // Remove the calling thread's TLS so that it cannot use the slot.
-  tls_index_.Set(NULL);
+  // tls_index_.Set(NULL);
+  tls_index_.reset(NULL);
   delete data;
 }
 
-void StatsTable::SlotReturnFunction(void* data) {
+void StatsTable::SlotReturnFunction(TLSData* data) {
   // This is called by the TLS destructor, which on some platforms has
   // already cleared the TLS info, so use the tls_data argument
   // rather than trying to fetch it ourselves.
-  TLSData* tls_data = static_cast<TLSData*>(data);
+  TLSData* tls_data = data; // static_cast<TLSData*>(data);
   if (tls_data) {
     DCHECK(tls_data->table);
     tls_data->table->UnregisterThread(tls_data);
@@ -426,7 +453,8 @@ int StatsTable::FindCounter(const std::string& name) {
 
   // Create a scope for our auto-lock.
   {
-    AutoLock scoped_lock(counters_lock_);
+    // AutoLock scoped_lock(counters_lock_);
+    boost::mutex::scoped_lock scoped_lock(counters_lock_);
 
     // Attempt to find the counter.
     CountersMap::const_iterator iter;
@@ -447,7 +475,8 @@ int StatsTable::AddCounter(const std::string& name) {
   {
     // To add a counter to the shared memory, we need the
     // shared memory lock.
-    SharedMemoryAutoLock lock(impl_->shared_memory());
+    // SharedMemoryAutoLock lock(impl_->shared_memory());
+    bip::scoped_lock<bip::interprocess_mutex> lock(impl_->mutex());
 
     // We have space, so create a new counter.
     counter_id = FindCounterOrEmptyRow(name);
@@ -463,7 +492,8 @@ int StatsTable::AddCounter(const std::string& name) {
 
   // now add to our in-memory cache
   {
-    AutoLock lock(counters_lock_);
+    // AutoLock lock(counters_lock_);
+    boost::mutex::scoped_lock scoped_lock(counters_lock_);
     counters_[name] = counter_id;
   }
   return counter_id;
