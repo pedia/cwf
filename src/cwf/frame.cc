@@ -17,8 +17,7 @@
 // #include "base3/logrotate.h"
 #include "base3/startuplist.h"
 #include "base3/ptime.h"
-#include "base3/pcount.h"
-#include "base3/asyncall.h"
+#include "base3/metrics/stats_counters.h"
 #include "base3/logging.h"
 
 #include "cwf/action.h"
@@ -62,9 +61,9 @@ BaseAction* FrameWork::Find(std::string const& url) const {
   return 0;
 }
 
-XAR_IMPL(cwferr);
-XAR_IMPL(cwfall);
-XAR_IMPL(prcGT100);
+// XAR_IMPL(cwferr);
+// XAR_IMPL(cwfall);
+// XAR_IMPL(prcGT100);
 HttpStatusCode FrameWork::Process(Request* request, Response* response) {
   HttpStatusCode rc;
 
@@ -77,14 +76,14 @@ HttpStatusCode FrameWork::Process(Request* request, Response* response) {
     return HC_NOT_FOUND;
   }
 
-  XAR_INC(cwfall);
+  // XAR_INC(cwfall);
   rc = a->Process(request, response);
 
   if (pt.wall_clock() > 100)
-    XAR_INC(prcGT100);
+    // XAR_INC(prcGT100);
 
   if (HC_OK != rc) {
-    XAR_INC(cwferr);
+    // XAR_INC(cwferr);
     ResponseError(rc, "Service", response);
     return rc;
   }
@@ -122,13 +121,10 @@ void FastcgiProc(FrameWork* fw, int fd) {
   int ret = FCGX_InitRequest(&wrap, fd, 0);
   ASSERT(0 == ret);
 
-  int c = 0;
+  base::StatsCounter request_count("RequestCount");
 
   while (FCGX_Accept_r(&wrap) >= 0) {
     // PTIME(pt, "accept", false, 100);
-
-    if (c++>500)
-      break;
 
     Request* q = new Request();
     if (!q->Init(wrap.in, wrap.envp)) {
@@ -138,6 +134,9 @@ void FastcgiProc(FrameWork* fw, int fd) {
     Response* p = new Response(wrap.out, wrap.err);
 
     HttpStatusCode rc = fw->Process(q, p);
+
+    request_count.Increment();
+    
 #if 0
     std::string r = p->str();
     FCGX_PutStr(r.c_str(), r.size(), wrap.out);
@@ -164,6 +163,7 @@ int FastcgiMain(int thread_count, int fd) {
   log_dir = (0==strcmp(pw->pw_name, "root")) ? "/data" : pw->pw_dir;
 #endif
 
+#if 0
   {
     std::ostringstream ostem;
     if (log_dir) 
@@ -173,9 +173,11 @@ int FastcgiMain(int thread_count, int fd) {
 		
     // base::LogRotate::instance().Start(ostem.str(), xce::INFO);
   }
+#endif
 
   base::RunStartupList();
 
+#if 0
   {
     LOG(INFO) << "xar::start";
     std::ostringstream ostem;
@@ -187,6 +189,7 @@ int FastcgiMain(int thread_count, int fd) {
     // xce::xar::instance().set_filename(ostem.str());
     // xce::xar::start();
   }
+#endif
 
   // FrameWork::RegisterAction(new EmptyAction());
   // FrameWork::RegisterAction(new TemplateAction());

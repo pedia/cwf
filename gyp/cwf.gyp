@@ -49,9 +49,10 @@
       'type': 'static_library',
       'msvs_guid': 'B0FA2852-A0D3-44B8-BDE0-E8B89D372D05',
       'include_dirs': ['../src'],
-      'dependencies': ['base3.gyp:base'],
-#      'dependencies': ['google-ctemplate.gyp:ctemplate'],
-#      'export_dependent_settings': ['google-ctemplate.gyp:ctemplate'],
+      'dependencies': [
+        'base3.gyp:base',
+        'libfcgi',
+      ],
       'sources': [
 '../src/cwf/404.tpl',
 '../src/cwf/action.h',
@@ -80,6 +81,21 @@
 # '../src/cwf/tplaction.cc',
 # '../src/cwf/tplaction.h',
       ],
+      'conditions': [
+        ['OS == "win"', {
+          'direct_dependent_settings': {
+              'libraries': ['ws2_32.lib'],
+            },
+          },
+        ],
+        ['OS == "linux"', {
+          'direct_dependent_settings': {
+              'libraries': [''],
+              'ldflags': ['<(DEPTH)'],
+            },
+          },
+        ],
+      ],
     },
     {
       'target_name': 'cwfd',
@@ -87,11 +103,9 @@
       'msvs_guid': '2DEFD3EE-88E3-41CD-AF2C-2249BE811651',
       'include_dirs': ['../src'],
       'dependencies': [
-        'google-ctemplate.gyp:ctemplate', 
-        'cwfmain', 
         'cwf',
-        'base3.gyp:base',
-        'libfcgi',
+        'cwfmain',
+        'google-ctemplate.gyp:ctemplate', 
       ],
       'export_dependent_settings': ['google-ctemplate.gyp:ctemplate'],
       'sources': [
