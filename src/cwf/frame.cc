@@ -7,11 +7,10 @@
 #include <signal.h>
 #endif
 
-// #include <iostream> // TODO: remove
-// #include <set>
 #include <boost/foreach.hpp>
 #include <boost/thread.hpp>
-#include "libfcgi/fcgiapp.h"
+
+#include "3rdparty/libfcgi/fcgiapp.h"
 
 #include "base3/common.h"
 #include "base3/logging.h"

@@ -5,8 +5,8 @@
 #include "base3/platform_thread.h"
 
 #include "base3/logging.h"
-#include "base3/thread_restrictions.h"
-#include "base3/win/windows_version.h"
+// #include "base3/thread_restrictions.h"
+// #include "base3/win/windows_version.h"
 
 namespace {
 
@@ -29,8 +29,10 @@ struct ThreadParams {
 DWORD __stdcall ThreadFunc(void* params) {
   ThreadParams* thread_params = static_cast<ThreadParams*>(params);
   PlatformThread::Delegate* delegate = thread_params->delegate;
+#if 0
   if (!thread_params->joinable)
     base::ThreadRestrictions::SetSingletonAllowed(false);
+#endif
   delete thread_params;
   delegate->ThreadMain();
   return NULL;
@@ -44,11 +46,11 @@ bool CreateThreadInternal(size_t stack_size,
                           PlatformThreadHandle* out_thread_handle) {
   PlatformThreadHandle thread_handle;
   unsigned int flags = 0;
-  if (stack_size > 0 && base::win::GetVersion() >= base::win::VERSION_XP) {
-    flags = STACK_SIZE_PARAM_IS_A_RESERVATION;
-  } else {
-    stack_size = 0;
-  }
+//   if (stack_size > 0 && base::win::GetVersion() >= base::win::VERSION_XP) {
+//     flags = STACK_SIZE_PARAM_IS_A_RESERVATION;
+//   } else {
+     stack_size = 0;
+//   }
 
   ThreadParams* params = new ThreadParams;
   params->delegate = delegate;

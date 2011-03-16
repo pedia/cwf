@@ -1,9 +1,9 @@
+#include "cwf/tplaction.h"
+
 #include "base3/logging.h"
 #include "base3/startuplist.h"
 #include "base3/globalinit.h"
 #include "base3/signals.h"
-
-#include "cwf/tplaction.h"
 
 static void SignalReload(int) {
   LOG(INFO) << "reload template";

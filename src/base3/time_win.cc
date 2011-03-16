@@ -41,9 +41,9 @@
 #include <mmsystem.h>
 
 #include "base3/basictypes.h"
-#include "base3/lock.h"
+#include "base3/platform_thread.h"
 #include "base3/logging.h"
-#include "base3/cpu.h"
+// #include "base3/cpu.h"
 #include "base3/singleton.h"
 
 using base::Time;
@@ -262,7 +262,7 @@ DWORD last_seen_now = 0;
 // easy to use a Singleton without even knowing it, and that may lead to many
 // gotchas). Its impact on startup time should be negligible due to low-level
 // nature of time code.
-Lock rollover_lock;
+// Lock rollover_lock;
 
 // We use timeGetTime() to implement TimeTicks::Now().  This can be problematic
 // because it returns the number of milliseconds since Windows has started,
@@ -270,7 +270,8 @@ Lock rollover_lock;
 // rollover ourselves, which works if TimeTicks::Now() is called at least every
 // 49 days.
 TimeDelta RolloverProtectedNow() {
-  AutoLock locked(rollover_lock);
+  // TODO: locked
+  // AutoLock locked(rollover_lock);
   // We should hold the lock while calling tick_function to make sure that
   // we keep last_seen_now stay correctly in sync.
   DWORD now = tick_function();
@@ -317,9 +318,11 @@ class HighResNowSingleton {
 
     // On Athlon X2 CPUs (e.g. model 15) QueryPerformanceCounter is
     // unreliable.  Fallback to low-res clock.
+#if 0
     base::CPU cpu;
     if (cpu.vendor_name() == "AuthenticAMD" && cpu.family() == 15)
       DisableHighResClock();
+#endif
   }
 
   bool IsUsingHighResClock() {

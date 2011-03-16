@@ -1,8 +1,6 @@
 #ifndef CWF_STREAM_H__
 #define CWF_STREAM_H__
 
-// TODO: use xce/base3/basictypes.h
-
 #include <sstream>
 #include <list>
 #include <vector>

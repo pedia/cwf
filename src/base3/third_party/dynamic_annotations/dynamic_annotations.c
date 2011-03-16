@@ -38,11 +38,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "base/third_party/dynamic_annotations/dynamic_annotations.h"
+#include "base3/third_party/dynamic_annotations/dynamic_annotations.h"
 
 #ifdef __GNUC__
 /* valgrind.h uses gcc extensions so it won't build with other compilers */
-# include "base/third_party/valgrind/valgrind.h"
+# include "base3/third_party/valgrind/valgrind.h"
 #endif
 
 /* Each function is empty and called (via a macro) only in debug mode.

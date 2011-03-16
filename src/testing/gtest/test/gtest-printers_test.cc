@@ -52,10 +52,10 @@
 
 // hash_map and hash_set are available under Visual C++.
 #if _MSC_VER
-#define GTEST_HAS_HASH_MAP_ 1  // Indicates that hash_map is available.
-#include <hash_map>            // NOLINT
-#define GTEST_HAS_HASH_SET_ 1  // Indicates that hash_set is available.
-#include <hash_set>            // NOLINT
+# define GTEST_HAS_HASH_MAP_ 1  // Indicates that hash_map is available.
+# include <hash_map>            // NOLINT
+# define GTEST_HAS_HASH_SET_ 1  // Indicates that hash_set is available.
+# include <hash_set>            // NOLINT
 #endif  // GTEST_OS_WINDOWS
 
 // Some user-defined types for testing the universal value printer.
@@ -74,7 +74,7 @@ enum EnumWithoutPrinter {
 
 // An enum with a << operator.
 enum EnumWithStreaming {
-  kEWS1 = 10,
+  kEWS1 = 10
 };
 
 std::ostream& operator<<(std::ostream& os, EnumWithStreaming e) {
@@ -83,7 +83,7 @@ std::ostream& operator<<(std::ostream& os, EnumWithStreaming e) {
 
 // An enum with a PrintTo() function.
 enum EnumWithPrintTo {
-  kEWPT1 = 1,
+  kEWPT1 = 1
 };
 
 void PrintTo(EnumWithPrintTo e, std::ostream* os) {
@@ -658,6 +658,20 @@ TEST(PrintStringTest, StringInStdNamespace) {
             Print(str));
 }
 
+TEST(PrintStringTest, StringAmbiguousHex) {
+  // "\x6BANANA" is ambiguous, it can be interpreted as starting with either of:
+  // '\x6', '\x6B', or '\x6BA'.
+
+  // a hex escaping sequence following by a decimal digit
+  EXPECT_EQ("\"0\\x12\" \"3\"", Print(::std::string("0\x12" "3")));
+  // a hex escaping sequence following by a hex digit (lower-case)
+  EXPECT_EQ("\"mm\\x6\" \"bananas\"", Print(::std::string("mm\x6" "bananas")));
+  // a hex escaping sequence following by a hex digit (upper-case)
+  EXPECT_EQ("\"NOM\\x6\" \"BANANA\"", Print(::std::string("NOM\x6" "BANANA")));
+  // a hex escaping sequence following by a non-xdigit
+  EXPECT_EQ("\"!\\x5-!\"", Print(::std::string("!\x5-!")));
+}
+
 // Tests printing ::wstring and ::std::wstring.
 
 #if GTEST_HAS_GLOBAL_WSTRING
@@ -679,6 +693,16 @@ TEST(PrintWideStringTest, StringInStdNamespace) {
   EXPECT_EQ("L\"'\\\"\\?\\\\\\a\\b\\f\\n\\0\\r\\t\\v"
             "\\xD3\\x576\\x8D3\\xC74D a\\0\"",
             Print(str));
+}
+
+TEST(PrintWideStringTest, StringAmbiguousHex) {
+  // same for wide strings.
+  EXPECT_EQ("L\"0\\x12\" L\"3\"", Print(::std::wstring(L"0\x12" L"3")));
+  EXPECT_EQ("L\"mm\\x6\" L\"bananas\"",
+            Print(::std::wstring(L"mm\x6" L"bananas")));
+  EXPECT_EQ("L\"NOM\\x6\" L\"BANANA\"",
+            Print(::std::wstring(L"NOM\x6" L"BANANA")));
+  EXPECT_EQ("L\"!\\x5-!\"", Print(::std::wstring(L"!\x5-!")));
 }
 #endif  // GTEST_HAS_STD_WSTRING
 
@@ -912,6 +936,28 @@ TEST(PrintStlContainerTest, TwoDimensionalNativeArray) {
   EXPECT_EQ("{ { 1, 2, 3 }, { 4, 5, 6 } }", Print(b));
 }
 
+// Tests that a class named iterator isn't treated as a container.
+
+struct iterator {
+  char x;
+};
+
+TEST(PrintStlContainerTest, Iterator) {
+  iterator it = {};
+  EXPECT_EQ("1-byte object <00>", Print(it));
+}
+
+// Tests that a class named const_iterator isn't treated as a container.
+
+struct const_iterator {
+  char x;
+};
+
+TEST(PrintStlContainerTest, ConstIterator) {
+  const_iterator it = {};
+  EXPECT_EQ("1-byte object <00>", Print(it));
+}
+
 #if GTEST_HAS_TR1_TUPLE
 // Tests printing tuples.
 
@@ -971,7 +1017,7 @@ TEST(PrintTupleTest, NestedTuple) {
 // Unprintable types in the global namespace.
 TEST(PrintUnprintableTypeTest, InGlobalNamespace) {
   EXPECT_EQ("1-byte object <00>",
-            Print(UnprintableTemplateInGlobal<bool>()));
+            Print(UnprintableTemplateInGlobal<char>()));
 }
 
 // Unprintable types in a user namespace.

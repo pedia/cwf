@@ -1,3 +1,5 @@
+#include "cwf/stream.h"
+
 #include<boost/tokenizer.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/classification.hpp>
@@ -7,8 +9,8 @@
 
 #include "base3/common.h"
 #include "base3/stringencode.h"
-#include "cwf/stream.h"
-#include "libfcgi/fcgiapp.h"
+
+#include "3rdparty/libfcgi/fcgiapp.h"
 
 namespace cwf {
 

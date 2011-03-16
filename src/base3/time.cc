@@ -3,8 +3,7 @@
 // found in the LICENSE file.
 
 #include "base3/time.h"
-#include "base3/sys_string_conversions.h"
-#include "base3/third_party/nspr/prtime.h"
+// #include "base3/sys_string_conversions.h"
 
 #include "base3/logging.h"
 
@@ -100,6 +99,7 @@ Time Time::LocalMidnight() const {
 // static
 bool Time::FromString(const wchar_t* time_string, Time* parsed_time) {
   DCHECK((time_string != NULL) && (parsed_time != NULL));
+#if 0
   std::string ascii_time_string = SysWideToUTF8(time_string);
   if (ascii_time_string.length() == 0)
     return false;
@@ -111,6 +111,8 @@ bool Time::FromString(const wchar_t* time_string, Time* parsed_time) {
   result_time += kTimeTToMicrosecondsOffset;
   *parsed_time = Time(result_time);
   return true;
+#endif
+  return false;
 }
 
 // Time::Exploded -------------------------------------------------------------

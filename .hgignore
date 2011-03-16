@@ -1,0 +1,10 @@
+syntax: glob
+_outside/*
+*/.svn/*
+pycwf
+out/*
+Default/*
+*.user
+*.mk
+*.sln
+*.Makefile

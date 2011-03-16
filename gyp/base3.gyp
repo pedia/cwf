@@ -1,8 +1,5 @@
 # gyp --depth . -Dlibrary=static_library base3.gyp -fmsvs -G msvs_version=2008e
 {
-  'variables': {
-    'library': 'static_library',
-  },
   'conditions': [
     ['OS=="linux"', {
       'target_defaults': {
@@ -13,7 +10,7 @@
     ['OS=="win"', {
       'target_defaults': {
         # 'cflags': ['-fPIC', '-g', '-O2',],
-        'defines': ['OS_WIN', 'ARCH_CPU_X86_FAMILY', 'NOMINMAX', 'UNICODE', '_UNICODE', 'WIN32_LEAN_AND_MEAN', '_WIN32_WINNT=0x0501'],
+        'defines': ['OS_WIN', 'ARCH_CPU_X86_FAMILY', 'NOMINMAX', 'UNICODE', '_UNICODE', 'WIN32_LEAN_AND_MEAN', '_WIN32_WINNT=0x0501', 'BASE_DISABLE_POOL'],
       },
     },],
   ],
@@ -23,12 +20,15 @@
       'type': 'executable',
       'dependencies': [
         'base',
-        'gtest.gyp:gtestmain',
+        '../src/testing/gtest.gyp:gtest_main',
       ],
       'conditions':[
         ['OS=="linux"', {'libraries': ['-lboost_system', '-lboost_thread', '-lpthread', '-ltcmalloc'] }],
       ],
-      'include_dirs': ['../src', '../src/testing/gtest/include',],
+      'include_dirs': [
+        '../src', 
+        # '../src/testing/gtest/include',
+      ],
       'sources': [
         '../src/base3/logging_test.cc',
       ],
@@ -38,7 +38,7 @@
       'type': 'executable',
       'dependencies': [
         'base',
-        'gtest.gyp:gtestmain',
+        '../src/testing/gtest.gyp:gtest_main',
       ],
       'conditions':[
         ['OS=="linux"', {'libraries': ['-lboost_system', '-lboost_thread', '-lpthread', '-ltcmalloc'] }],
@@ -72,7 +72,7 @@
       ],
       'include_dirs': [
         '../src',
-        '../src/testing/gtest/include',
+        #'../src/testing/gtest/include',
       ],
     },
     {
@@ -97,8 +97,10 @@
 '../src/base3/build_config.h',
 '../src/base3/cache.h',
 '../src/base3/circular_count.h',
-# '../src/base3/common.cc',
-# '../src/base3/common.h',
+#'../src/base3/cpu.h',
+#'../src/base3/cpu.cc',
+'../src/base3/common.cc',
+'../src/base3/common.h',
 '../src/base3/compiler_specific.h',
 '../src/base3/consistenthash.h',
 '../src/base3/directstream.h',
@@ -107,8 +109,8 @@
 '../src/base3/eintr_wrapper.h',
 '../src/base3/escape.h',
 '../src/base3/file_descriptor_posix.h',
-'../src/base3/file_descriptor_shuffle.cc',
-'../src/base3/file_descriptor_shuffle.h',
+#'../src/base3/file_descriptor_shuffle.cc',
+#'../src/base3/file_descriptor_shuffle.h',
 '../src/base3/getopt.c',
 '../src/base3/getopt_.h',
 '../src/base3/getopt.h',
@@ -163,11 +165,11 @@
 # '../src/base3/process_util_win.cc',
 # '../src/base3/process_win.cc',
 # '../src/base3/ptime.h',
-'../src/base3/rand_util.cc',
-'../src/base3/rand_util_c.h',
-'../src/base3/rand_util.h',
-'../src/base3/rand_util_posix.cc',
-'../src/base3/rand_util_win.cc',
+# '../src/base3/rand_util.cc',
+# '../src/base3/rand_util_c.h',
+# '../src/base3/rand_util.h',
+# '../src/base3/rand_util_posix.cc',
+# '../src/base3/rand_util_win.cc',
 '../src/base3/README.txt',
 '../src/base3/ref_counted.cc',
 '../src/base3/ref_counted.h',

@@ -10,7 +10,7 @@
 #include "base3/logging.h"
 #include "base3/safe_strerror_posix.h"
 #include "base3/scoped_ptr.h"
-#include "base3/thread_restrictions.h"
+// #include "base3/thread_restrictions.h"
 
 #if defined(OS_MACOSX)
 #include <mach/mach.h>
@@ -47,8 +47,10 @@ struct ThreadParams {
 static void* ThreadFunc(void* params) {
   ThreadParams* thread_params = static_cast<ThreadParams*>(params);
   PlatformThread::Delegate* delegate = thread_params->delegate;
+#if 0
   if (!thread_params->joinable)
     base::ThreadRestrictions::SetSingletonAllowed(false);
+#endif
   delete thread_params;
   delegate->ThreadMain();
   return NULL;
