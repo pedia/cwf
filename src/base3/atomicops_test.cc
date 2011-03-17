@@ -38,7 +38,7 @@
 
 using namespace base;
 
-#define GG_ULONGLONG(x)  static_cast<uint64>(x)
+#define TO_ULONGLONG(x)  static_cast<uint64>(x)
 
 template <class AtomicType>
 static void TestAtomicIncrement() {
@@ -122,7 +122,7 @@ static void TestCompareAndSwap() {
 
   // Use test value that has non-zero bits in both halves, more for testing
   // 64-bit implementation on 32-bit platforms.
-  const AtomicType k_test_val = (GG_ULONGLONG(1) <<
+  const AtomicType k_test_val = (TO_ULONGLONG(1) <<
                                  (NUM_BITS(AtomicType) - 2)) + 11;
   value = k_test_val;
   prev = base::subtle::NoBarrier_CompareAndSwap(&value, 0, 5);
@@ -145,7 +145,7 @@ static void TestAtomicExchange() {
 
   // Use test value that has non-zero bits in both halves, more for testing
   // 64-bit implementation on 32-bit platforms.
-  const AtomicType k_test_val = (GG_ULONGLONG(1) <<
+  const AtomicType k_test_val = (TO_ULONGLONG(1) <<
                                  (NUM_BITS(AtomicType) - 2)) + 11;
   value = k_test_val;
   new_value = base::subtle::NoBarrier_AtomicExchange(&value, k_test_val);
@@ -163,7 +163,7 @@ template <class AtomicType>
 static void TestAtomicIncrementBounds() {
   // Test increment at the half-width boundary of the atomic type.
   // It is primarily for testing at the 32-bit boundary for 64-bit atomic type.
-  AtomicType test_val = GG_ULONGLONG(1) << (NUM_BITS(AtomicType) / 2);
+  AtomicType test_val = TO_ULONGLONG(1) << (NUM_BITS(AtomicType) / 2);
   AtomicType value = test_val - 1;
   AtomicType new_value = base::subtle::NoBarrier_AtomicIncrement(&value, 1);
   EXPECT_EQ(test_val, value);
@@ -233,6 +233,8 @@ static void TestAtomicOps() {
 }
 
 TEST(Atomi, Test) {
+  using base::subtle::AtomicWord;
+  using base::subtle::Atomic32;
   TestAtomicIncrement<AtomicWord>();
   TestAtomicIncrement<Atomic32>();
 

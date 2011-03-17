@@ -12,7 +12,7 @@ base::ReadWriteLock lock;
 void ReaderProc() {
   while(!quit_) {
     lock.ReadLock();
-    std::cout << "cnt = " << count << std::endl;
+    // std::cout << "cnt = " << count << std::endl;
     lock.ReadUnlock();
     base::Sleep(50);
   }

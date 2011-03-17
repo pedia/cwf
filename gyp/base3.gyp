@@ -4,13 +4,17 @@
     ['OS=="linux"', {
       'target_defaults': {
         'cflags': ['-fPIC', '-g', '-O2',],
-        'defines': ['OS_LINUX'],
+        'defines': ['OS_LINUX','BASE_DISABLE_POOL'],
       },
     },],
     ['OS=="win"', {
       'target_defaults': {
         # 'cflags': ['-fPIC', '-g', '-O2',],
         'defines': ['OS_WIN', 'ARCH_CPU_X86_FAMILY', 'NOMINMAX', 'UNICODE', '_UNICODE', 'WIN32_LEAN_AND_MEAN', '_WIN32_WINNT=0x0501', 'BASE_DISABLE_POOL'],
+        'msvs_settings': {
+          'VCLinkerTool': {'GenerateDebugInformation': 'true',},
+          'VCCLCompilerTool': {'DebugInformationFormat': '3',},
+        },
       },
     },],
   ],
@@ -19,7 +23,7 @@
       'target_name': 'base_naketest',
       'type': 'executable',
       'dependencies': [
-        'base',
+        'base3',
         '../src/testing/gtest.gyp:gtest_main',
       ],
       'conditions':[
@@ -37,17 +41,17 @@
       'target_name': 'base_unittest',
       'type': 'executable',
       'dependencies': [
-        'base',
+        'base3',
         '../src/testing/gtest.gyp:gtest_main',
       ],
       'conditions':[
         ['OS=="linux"', {'libraries': ['-lboost_system', '-lboost_thread', '-lpthread', '-ltcmalloc'] }],
       ],
       'sources': [
-'../src/base3/asyncall2_test.cc',
-'../src/base3/asyncall_test.cc',
+#'../src/base3/asyncall2_test.cc',
+#'../src/base3/asyncall_test.cc',
 '../src/base3/atomicops_test.cc',
-'../src/base3/baseasync_test.cc',
+#'../src/base3/baseasync_test.cc',
 '../src/base3/boost_test.cc',
 '../src/base3/cache_test.cc',
 '../src/base3/common_test.cc',
@@ -66,8 +70,10 @@
 '../src/base3/ptime_test.cc',
 '../src/base3/rwlock_test.cc',
 '../src/base3/stringencode_test.cc',
+'../src/base3/string_piece_unittest.cc',
+'../src/base3/ref_counted_unittest.cc',
 '../src/base3/tcmalloc_test.cc',
-'../src/base3/threadpool_test.cc',
+#'../src/base3/threadpool_test.cc',
 '../src/base3/types_test.cc',
       ],
       'include_dirs': [
@@ -76,7 +82,7 @@
       ],
     },
     {
-      'target_name': 'base',
+      'target_name': 'base3',
       'type': 'static_library',
       'msvs_guid': '9301A569-5D2B-4D11-9332-B1E30AEACB8D',
       'include_dirs': ['../src'],
@@ -113,7 +119,6 @@
 #'../src/base3/file_descriptor_shuffle.h',
 '../src/base3/getopt.c',
 '../src/base3/getopt_.h',
-'../src/base3/getopt.h',
 '../src/base3/globalinit.h',
 '../src/base3/hash.h',
 '../src/base3/hashmap.h',
@@ -235,12 +240,24 @@
 '../src/base3/time.h',
 '../src/base3/time_posix.cc',
 '../src/base3/time_win.cc',
+'../src/base3/charmask.h',
+'../src/base3/url.cc',
+'../src/base3/url.h',
       ],
+      # TODO: better way
+      'direct_dependent_settings': {
+        'include_dirs': ['../src/testing/gtest/include'],
+      },
       'conditions': [
         ['OS!="mac"', {'sources/': [['exclude', '_mac\\.(cc|mm?)$']]}],
         ['OS!="win"', {'sources/': [['exclude', '_win\\.cc$']]
           }, {  # else: OS=="win"
             'sources/': [['exclude', '_posix\\.cc$']]
+        }],
+        ['OS == "linux"', {
+          'direct_dependent_settings': {
+            'libraries': ['-lrt', '-ltcmalloc', '-lpthread'],
+          },
         }],
       ],
     },

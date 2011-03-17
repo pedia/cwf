@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 {
+  'variables' : {'clang' : 0},
   'targets': [
     {
       'target_name': 'gtest',

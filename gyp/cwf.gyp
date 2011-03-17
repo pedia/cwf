@@ -28,7 +28,7 @@
       'dependencies': [
         'cwf',
         'libfcgi',
-        'base3.gyp:base',
+        'base3.gyp:base3',
         'google-ctemplate.gyp:ctemplate',
         '../src/testing/gtest.gyp:gtest_main',
       ],
@@ -41,7 +41,6 @@
       ],
       'include_dirs': [
         '../src',
-        # '../src/testing/gtest/include',
       ],
     },
     {
@@ -50,7 +49,7 @@
       'msvs_guid': 'B0FA2852-A0D3-44B8-BDE0-E8B89D372D05',
       'include_dirs': ['../src'],
       'dependencies': [
-        'base3.gyp:base',
+        'base3.gyp:base3',
         'libfcgi',
       ],
       'sources': [
@@ -81,6 +80,7 @@
 # '../src/cwf/tplaction.cc',
 # '../src/cwf/tplaction.h',
       ],
+      'export_dependent_settings': ['base3.gyp:base3'],
       'conditions': [
         ['OS == "win"', {
           'direct_dependent_settings': {
@@ -91,7 +91,7 @@
         ['OS == "linux"', {
           'direct_dependent_settings': {
               'libraries': [''],
-              'ldflags': ['<(DEPTH)'],
+              #'ldflags': ['<(DEPTH)'],
             },
           },
         ],
@@ -108,6 +108,10 @@
         'google-ctemplate.gyp:ctemplate', 
       ],
       'export_dependent_settings': ['google-ctemplate.gyp:ctemplate'],
+      'conditions':[
+        ['OS=="linux"', {'libraries': ['-lboost_system', '-lboost_thread', '-lpthread'] }],
+        ['OS=="win"', {'libraries': ['ws2_32.lib'] }],
+      ],
       'sources': [
 '../src/cwf/404.tpl',
 '../src/cwf/tplaction.cc',

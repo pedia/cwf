@@ -10,10 +10,10 @@ const char * foo = "<html>hello<html>";
 const char * foo_end = foo + strlen(foo);
 
 TEST(ParserTest, Compile) {
-  typedef Parser<DumyHandler> DumyParser;
-  DumyHandler dumy;
+  typedef Parser<DummyHandler> DummyParser;
+  DummyHandler dummy;
 
-  DumyParser dp(&dumy);
+  DummyParser dp(&dummy);
   dp.Feed(foo, foo_end);
 }
 

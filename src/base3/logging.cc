@@ -45,15 +45,9 @@ typedef pthread_mutex_t* MutexHandle;
 #include <cstring>
 #include <algorithm>
 
-// #include "base3/base_switches.h"
-// #include "base3/command_line.h"
-// #include "base3/debug/debugger.h"
-// #include "base3/debug/stack_trace.h"
 #include "base3/eintr_wrapper.h"
-
-// #include "base3/process_util.h"
 #include "base3/string_piece.h"
-// #include "base3/utf_string_conversions.h"
+
 // TODO: add vlog, it's useful
 // #include "base3/vlog.h"
 
@@ -537,7 +531,7 @@ void LogMessage::Init(const char* file, int line) {
   else
     stream_ << "VERBOSE" << -severity_;
 
-  stream_ << ":" << file << "(" << line << ")] ";
+  stream_ << ":" << filename << "(" << line << ")] ";
 
   message_start_ = stream_.tellp();
 }

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <gtest/gtest.h>
 #include <boost/bind.hpp>
+
+#if 0
 #include "base3/pcount.h"
 
 using base::pcount;
@@ -106,3 +108,4 @@ TEST(PcountTest, Rusage) {
   std::cout << "\n-- all --\n";
   x.output(std::cout);
 }
+#endif

@@ -837,7 +837,7 @@ void Parser<HandlerT>::call_end_document() {
 
 //////////////////////////////////////////////////////////////////////////
 
-class DumyHandler {
+class DummyHandler {
 public:
   bool start_document() {
     return true;
