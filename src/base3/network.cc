@@ -1,3 +1,5 @@
+#include "base3/network.h"
+
 #ifdef OS_LINUX
 // #include <sys/types.h>
 // #include <sys/socket.h>
@@ -22,7 +24,7 @@
 #include <errno.h>
 #include <sstream>
 
-#include "base3/network.h"
+
 #include "base3/logging.h"
 #include "base3/common.h"
 

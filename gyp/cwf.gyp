@@ -1,7 +1,4 @@
 {
-  'variables': {
-    'library': 'static_library',
-  },
   'conditions': [
     ['OS=="linux"', {
       'target_defaults': {
@@ -90,7 +87,6 @@
         ],
         ['OS == "linux"', {
           'direct_dependent_settings': {
-              'libraries': [''],
               #'ldflags': ['<(DEPTH)'],
             },
           },

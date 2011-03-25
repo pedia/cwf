@@ -3,6 +3,7 @@
 
 #include <string>
 #include <list>
+#include <ostream>
 
 #include "cwf/stream.h"
 
@@ -22,6 +23,8 @@ public:
   HttpStatusCode Process(Request* request, Response* response);
 
   static void RegisterAction(BaseAction*);
+
+  static void ListAction(std::ostream & ostem);
 
 private:
   BaseAction* Find(std::string const& url) const;

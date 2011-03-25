@@ -99,6 +99,17 @@ void FrameWork::RegisterAction(BaseAction* a) {
   default_actions_->push_back(a);
 }
 
+void FrameWork::ListAction(std::ostream & ostem) {
+  // 应该先调用 RunStartupList
+  if (!default_actions_)
+    return;
+
+  for (FrameWork::ActionListType::const_iterator i = default_actions_->begin();
+    i != default_actions_->end(); ++i) {
+      ostem << typeid(**i).name() << std::endl;
+  }
+}
+
 void FrameWork::ResponseError(HttpStatusCode code, const char* message, Response* response) {
   // TODO: 貌似返回非 200 有错误, nginx 不识别？
   GenerateCommonHeader(&response->header(), code, message);

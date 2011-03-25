@@ -1,8 +1,10 @@
 #ifndef BASE_BASE_NETWORK_H__
 #define BASE_BASE_NETWORK_H__
 
-#include "base3/basictypes.h"
 #include <vector>
+#include <string>
+
+#include "base3/basictypes.h"
 
 namespace base {
 

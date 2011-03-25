@@ -2,8 +2,6 @@
 
 #include <sstream>
 
-// #include "base3/startuplist.h"
-// #include "base3/globalinit.h"
 #include "cwf/frame.h"
 
 namespace cwf {
@@ -60,13 +58,12 @@ struct EatAction : BaseAction {
   }
 };
 
-static EatAction eat_action_;
-static FooAction foo_action_;
-
 void InstallDefaultAction() {
+  static EatAction eat_action_;
+  static FooAction foo_action_;
+
   FrameWork::RegisterAction(&eat_action_);
   FrameWork::RegisterAction(&foo_action_);
 }
 
 }
-

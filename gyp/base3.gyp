@@ -254,7 +254,7 @@
           }, {  # else: OS=="win"
             'sources/': [['exclude', '_posix\\.cc$']]
         }],
-        ['OS == "linux"', {
+        ['OS=="linux"', {
           'direct_dependent_settings': {
             'libraries': ['-lrt', '-ltcmalloc', '-lpthread'],
           },

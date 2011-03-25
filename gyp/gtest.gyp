@@ -3,9 +3,7 @@
 # found in the LICENSE file.
 
 {
-  'variables': {
-    'clang': 0,
-  },
+  'variables' : {'clang' : 0},
   'targets': [
     {
       'target_name': 'gtest',
@@ -41,15 +39,15 @@
         '../src/testing/gtest/src/gtest-test-part.cc',
         '../src/testing/gtest/src/gtest-typed-test.cc',
         '../src/testing/gtest/src/gtest.cc',
-        'multiprocess_func_list.cc',
-        'multiprocess_func_list.h',
-        'platform_test.h',
+        '../src/testing/multiprocess_func_list.cc',
+        '../src/testing/multiprocess_func_list.h',
+        '../src/testing/platform_test.h',
       ],
       'sources!': [
         '../src/testing/gtest/src/gtest-all.cc',  # Not needed by our build.
       ],
       'include_dirs': [
-        'gtest',
+        '../src/testing/gtest',
         '../src/testing/gtest/include',
       ],
       'conditions': [
@@ -102,18 +100,32 @@
           'UNIT_TEST',
         ],
         'include_dirs': [
-          '../src/testing/gtest/include',  # So that gtest headers can find themselves.
+          #'gtest/include',  # So that gtest headers can find themselves.
+          '../src/testing/gtest',
+          '../src/testing/gtest/include',
         ],
         'target_conditions': [
-          ['_type=="executable"', {'test': 1}],
+          ['_type=="executable"', {
+            'test': 1,
+            'conditions': [
+              ['OS=="mac"', {
+                'run_as': {
+                  'action????': ['${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}'],
+                },
+              }],
+              ['OS=="win"', {
+                'run_as': {
+                  'action????': ['$(TargetPath)', '--gtest_print_time'],
+                },
+              }],
+            ],
+          }],
         ],
         'msvs_disabled_warnings': [4800],
       },
     },
     {
-      # Note that calling this "gtest_main" confuses the scons build,
-      # which uses "_main" on scons files to produce special behavior.
-      'target_name': 'gtestmain',
+      'target_name': 'gtest_main',
       'type': '<(library)',
       'dependencies': [
         'gtest',

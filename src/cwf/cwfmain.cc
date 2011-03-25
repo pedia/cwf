@@ -4,6 +4,7 @@
 // #include "base3/common.h"
 #include "base3/getopt_.h"
 #include "base3/logging.h"
+#include "base3/startuplist.h"
 
 #include "cwf/frame.h"
 #include "cwf/connect.h"
@@ -17,6 +18,7 @@ static void show_help () {
   puts("Usage: cwf [options] [-- <fcgiapp> [fcgi app arguments]]\n" \
     "\n" \
     "Options:\n" \
+    " -e             dump effective Action(s)\n" \
     " -d <directory> chdir to directory before spawning\n" \
     " -a <address>   bind to IPv4/IPv6 address (defaults to 0.0.0.0)\n" \
     " -p <port>      bind to TCP-port\n" \
@@ -49,8 +51,15 @@ int main(int argc, char* argv[]) {
 
   int o;
 
-  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:s:?h"))) {
+  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:s:?he"))) {
     switch(o) {
+    case 'e' : 
+      // disable std::err log
+      logging::SetMinLogLevel(logging::LOG_FATAL);
+      base::RunStartupList();
+      cwf::FrameWork::ListAction(std::cout);
+      base::DestoryStartupList();
+      return 0;
     case 'd': fcgi_dir = optarg; break;
     case 'a': addr = optarg;/* ip addr */ break;
     case 'p': 
@@ -80,7 +89,7 @@ int main(int argc, char* argv[]) {
     case 'h': show_help(); return 0;
     default:
       show_help();
-      return -1;
+      return 0;
     }
   }
 
