@@ -74,6 +74,7 @@
       ],
       'sources': [
 '../src/plate/plateaction.cc',
+'../src/plate/readaction.cc',
       ],
     }
   ],

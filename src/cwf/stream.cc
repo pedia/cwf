@@ -440,9 +440,7 @@ bool Response::OutputHeader() {
   header_.Write(ostem);
 
   std::string r = ostem.str();
-  FCGX_Stream* write_to = out_;
-    // header_.status_code() >= HC_BAD_REQUEST ? err_ : out_;
-  FCGX_PutStr(r.c_str(), r.size(), write_to);
+  FCGX_PutStr(r.c_str(), r.size(), out_);
   return true;
 }
 
@@ -452,6 +450,15 @@ void Response::WriteRaw(const std::string & text) {
 
 void Response::WriteRaw(const char* buf, size_t size) {
   FCGX_PutStr(buf, size, out_);
+}
+
+void Response::WriteRawWithHeader(const char* buf, size_t size) {
+  std::ostringstream ostem;
+  header_.Write(ostem);
+  ostem.write(buf, size);
+
+  std::string r = ostem.str();
+  FCGX_PutStr(r.c_str(), r.size(), out_);
 }
 
 }

@@ -192,6 +192,8 @@ public:
   void WriteRaw(const std::string &);
   void WriteRaw(const char*, size_t);
 
+  void WriteRawWithHeader(const char*, size_t);
+
   // 貌似写入 out, err 时需要加锁
   Response(FCGX_Stream* out, FCGX_Stream* err) 
     : out_(out), err_(err) {}
