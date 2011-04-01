@@ -19,33 +19,73 @@
 
 namespace plate {
 
-const char* kRoot = "/mnt/mfs";
-
 uint32 Writer::Hash(const char* text, int text_length) {
   if (0 == text_length)
     text_length = strlen(text);
   return base::MurmurHash2(text, text_length, 0);
 }
 
-int Writer::WriteImpl(int index, int offset, int length
+bool Writer::SetUrlDetail(const char* prefix, const char* date, char type, const char* postfix) {
+  if (index() < 0 || offset() <= 0 || length() <= 0)
+    return false;
+
+  // 文件长度按 1K 取整
+  int padding_offset = Align1K(offset());
+  std::string index_tmp, offset_tmp, length_tmp;
+  index_tmp = ToSixty(index());
+  offset_tmp = ToSixty(padding_offset);
+  length_tmp = ToSixty(length());
+
+  std::string date_str;
+  if (!date) {
+    date_str = DateString();
+    date = date_str.c_str();
+  }
+  std::string time_str = TimeString();
+
+  char buf[1024];
+  snprintf(buf, sizeof(buf), "%s/%s/%s/%s/%c_%s_%s.%s", prefix
+    , date
+    , time_str.c_str()
+    , index_tmp.c_str()
+    , type
+    , offset_tmp.c_str()
+    , length_tmp.c_str()
+    , postfix);
+
+  uint32 h = Writer::Hash(buf);
+  snprintf(buf, sizeof(buf), "%s/%s/%s/%s/%c_%s_%s_%s.%s", prefix
+    , date
+    , time_str.c_str()
+    , index_tmp.c_str()
+    , type
+    , offset_tmp.c_str()
+    , length_tmp.c_str()
+    , ToSixty(h).c_str()
+    , postfix);
+
+  url_ = buf;
+  return true;
+}
+
+int Writer::WriteImpl(const std::string& filename
+    , int offset, int length
     , const std::string& url, const char* buf, int size
     , const char *userdata, size_t userdata_size) {
   // 进行校验判断
-  if (index < 0 || offset < 0 || length <= 0)
-    return 0;
-  if (buf == NULL || size <= 0 || size != length)
+  if (filename.empty() || offset <= 0)
     return 0;
 
   // 尽可能的减少远程通讯，浪费一些内存
   int padding = Align1K(offset) - offset;
 
-  boost::scoped_array<char> huge(new char[padding + kHeaderSize + size]);
-  memset(huge.get(), 0, padding + kHeaderSize + size);
+  boost::scoped_array<char> huge(new char[padding + kFileHeaderSize + size]);
+  memset(huge.get(), 0, padding + kFileHeaderSize + size);
   // 文件头处理
   {
     FileHeader* head = (FileHeader *)(huge.get() + padding);
     head->magic = FileHeader::kMAGIC_CODE;
-    head->length = size + kHeaderSize;
+    head->length = size + kFileHeaderSize;
     head->version = FileHeader::kVERSION;
     head->flag = FileHeader::kFILE_NORMAL;
     memcpy(head->url, url.c_str(), url.size());
@@ -54,27 +94,26 @@ int Writer::WriteImpl(int index, int offset, int length
       memcpy(head->userdata, userdata, userdata_size);
   }
 
-  memcpy(huge.get() + padding + kHeaderSize, buf, size);
+  memcpy(huge.get() + padding + kFileHeaderSize, buf, size);
 
-  char filepath[128] = {0};
-  // 此处对index要进行取余解析
-  BundleFilePath(filepath, 128, index);
-
+#if 0
+  // 一般CreateBundle创建了目录，此处不需要
   std::string dir = base::Dirname(filepath);
   struct stat st;
   if (0 != stat(dir.c_str(), &st)) {
     base::mkdirs(dir.c_str());
   }
+#endif
 
-  FILE *fp = fopen(filepath,"r+b");
+  FILE *fp = fopen(filename.c_str(), "r+b");
   if (fp == NULL)
     return 0;
   if (fseek(fp, offset, 0) == -1)
     return 0;
-  size_t written = fwrite(huge.get(), sizeof(char), padding + kHeaderSize + size, fp);
-  ASSERT(padding + kHeaderSize + size == written);
+  size_t written = fwrite(huge.get(), sizeof(char), padding + kFileHeaderSize + size, fp);
+  ASSERT(padding + kFileHeaderSize + size == written);
 
-  ASSERT(ftell(fp) == offset + padding + kHeaderSize + size);
+  ASSERT(ftell(fp) == offset + padding + kFileHeaderSize + size);
 
   fclose(fp);
   return size;
@@ -94,13 +133,13 @@ bool Reader::Extract(const char* url, std::string *prefix
 
   // url has the fixed role, so take over the url below
   uint32 hash_tmp;
-  std::string prefix_tmp, filename_tmp, type_tmp, offset_tmp, length_tmp, postfix_tmp;
+  std::string prefix_tmp, date_tmp, time_tmp, index_tmp, type_tmp, offset_tmp, length_tmp, postfix_tmp;
   int i = 0;
   for (tokenizer::iterator tok_iter = tokens.begin(); tok_iter != tokens.end(); ++tok_iter) {
-    if (i == 0) prefix_tmp = *tok_iter + "/";
-    else if (i == 1) prefix_tmp += *tok_iter + "/";
-    else if (i == 2) prefix_tmp += *tok_iter;
-    else if (i == 3) filename_tmp = *tok_iter;
+    if (i == 0) prefix_tmp = *tok_iter;
+    else if (i == 1) date_tmp += *tok_iter;
+    else if (i == 2) time_tmp += *tok_iter;
+    else if (i == 3) index_tmp = *tok_iter;
     else if (i == 4) type_tmp = *tok_iter;
     else if (i == 5) offset_tmp = *tok_iter;
     else if (i == 6) length_tmp = *tok_iter;
@@ -115,9 +154,21 @@ bool Reader::Extract(const char* url, std::string *prefix
   if (prefix) *prefix = prefix_tmp;
 
   if (filename) {
-    char file[128] = {0};
-    BundleFilePath(file, 128, FromSixty(filename_tmp));
-    *filename = file;
+    // prefix/date/ index / [] / []
+    int id = FromSixty(index_tmp);
+    char t[128];
+    snprintf(t, 128, "%s/%s", prefix_tmp.c_str()
+      , date_tmp.c_str());
+
+    *filename = BundleFilename(id, t);
+
+#if defined(OS_WIN)
+    std::string::size_type pos = (*filename).find('/');
+    while (pos != std::string::npos) {
+      *filename = (*filename).replace(pos, 1, 1, '\\');
+      pos = (*filename).find('/', pos + 1);
+    }
+#endif
   }
 
   if (type) *type = type_tmp[0];
@@ -127,8 +178,10 @@ bool Reader::Extract(const char* url, std::string *prefix
 
   // weather hash is right?
   char buf[1024] = {0};
-  snprintf(buf, sizeof(buf), "%s/%s/%c_%s_%s.%s", prefix_tmp.c_str()
-      , filename_tmp.c_str()
+  snprintf(buf, sizeof(buf), "%s/%s/%s/%s/%c_%s_%s.%s", prefix_tmp.c_str()
+      , date_tmp.c_str()
+      , time_tmp.c_str()
+      , index_tmp.c_str()
       , type_tmp[0]
       , offset_tmp.c_str()
       , length_tmp.c_str()
@@ -160,7 +213,7 @@ static int ReadTheFile(const char* posix_file, size_t offset, char * huge, unsig
     return 0;
 
   size_t readed = fread(huge, sizeof(char), huge_size, fp.get());
-  if (readed >= kHeaderSize) {
+  if (readed >= kFileHeaderSize) {
     FileHeader * fh = (FileHeader *)huge;
     if (fh->magic != FileHeader::kMAGIC_CODE)
       return -1;
@@ -173,8 +226,8 @@ static int ReadTheFile(const char* posix_file, size_t offset, char * huge, unsig
         return -1;
 
       if (readed == huge_size) {
-        // memcpy(buffer, huge + kHeaderSize, huge_size - kHeaderSize);
-        return huge_size - kHeaderSize;
+        // memcpy(buffer, huge + kFileHeaderSize, huge_size - kFileHeaderSize);
+        return huge_size - kFileHeaderSize;
       }
 
       // 只读了部分出来了?
@@ -183,7 +236,7 @@ static int ReadTheFile(const char* posix_file, size_t offset, char * huge, unsig
 
     // 
     if (fh->flag & FileHeader::kFILE_REDIRECT) {
-      const char* url = huge + kHeaderSize;
+      const char* url = huge + kFileHeaderSize;
       std::string filename;
       uint32 offset = 0, length = 0;
 
@@ -213,13 +266,13 @@ int Reader::Read(const char* url, char *buffer, int buffer_size) {
   // 检查是否被删除了，文件长度是否正确
   // 是否是跳转
 
-  boost::scoped_array<char> huge(new char[kHeaderSize + file_size]);
+  boost::scoped_array<char> huge(new char[kFileHeaderSize + file_size]);
   if (!huge)
     return 0;
 
-  int readed = ReadTheFile(filename.c_str(), offset, huge.get(), kHeaderSize + file_size);
+  int readed = ReadTheFile(filename.c_str(), offset, huge.get(), kFileHeaderSize + file_size);
   if (readed == file_size) {
-    memcpy(buffer, huge.get() + kHeaderSize, file_size);
+    memcpy(buffer, huge.get() + kFileHeaderSize, file_size);
   }
   return readed; 
 }
@@ -237,34 +290,88 @@ bool CreateBundle(const char* filepath) {
     strftime(now_str, 100, "%Y-%m-%d %H:%M:%S", tmp);
   }
 
-  const int BundleHeaderSize = 4096;
-  boost::scoped_array<char> huge(new char[BundleHeaderSize]);
-  memset(huge.get(), 0, BundleHeaderSize);
-  snprintf(huge.get(), BundleHeaderSize, "opi-corp.com file store\n"
+  boost::scoped_array<char> huge(new char[kBundleHeaderSize]);
+  memset(huge.get(), 0, kBundleHeaderSize);
+  snprintf(huge.get(), kBundleHeaderSize, "opi-corp.com file store\n"
       "1.0\n"
       "%s\n", now_str);
-  fwrite(huge.get(), sizeof(char), BundleHeaderSize, fp);
+  fwrite(huge.get(), sizeof(char), kBundleHeaderSize, fp);
   fclose(fp);
   return true;
 }
 
-const char* kBundleNameFormat = "%s/p/%02d/%08d";
+// used in file
+std::string DateString() {
+  char now_str[16];
+  time_t t = time(0);
+  struct tm *tmp = localtime(&t);
+
+  strftime(now_str, 100, "%Y%m%d", tmp);
+  return std::string(now_str);
+}
+
+// used in url
+std::string TimeString() {
+  char now_str[16];
+  time_t t = time(0);
+  struct tm *tmp = localtime(&t);
+
+  strftime(now_str, 100, "%H%M", tmp);
+  return std::string(now_str);
+}
 
 // 从 bundle index 得到文件全路径
-
-// 总共 40T
-// 40T / 2G = 20K 个文件
 // 保持一个原则，每个目录下文件数不超过 400
-// 50 * 400 = 20000
+// 50 * 400 = 20000 * 2G = 40T
 // TODO: 好像和之前预想的有差异，更好的实现
-int BundleFilePath(char* name, int name_size, unsigned int i) {
+
+const char* kRoot = "/mnt/mfs";
+const char* kPrefix = "p";
+const char* kBundleNameFormat = "%s/%s/%s/%02x/%03x";
+//   foo/20101231/ [index/50] / [index%400]
+
+std::string BundleFilename(unsigned int bundle_index, const char* prefix) {
 #ifdef OS_LINUX
-  int ret = snprintf(name, name_size, kBundleNameFormat, kRoot, i % 50, i);
-#elif defined(WIN32)
-  int ret = snprintf(name, name_size, "f:\\mnt\\plate\\p\\%02x\\%08x", i % 50, i);
-#endif
-  ASSERT(ret > 0); // TODO: use DCHECK
-  return ret;
+  const int name_size = 1024;
+  char name[name_size];
+
+  if (!prefix) {
+    int ret = snprintf(name, name_size, "%s/%s/%s/%02x/%04x", kRoot, kPrefix
+      , DateString().c_str()
+      , bundle_index / 50, bundle_index % 400);
+    ASSERT(ret > 0); // TODO: use DCHECK
+  } else {
+    int ret = snprintf(name, name_size, "%s/%s/%02x/%04x", kRoot, prefix
+      , bundle_index / 50, bundle_index % 400);
+    ASSERT(ret > 0); // TODO: use DCHECK
+  }
+  
+  return std::string(name);
+#elif defined(OS_WIN)
+  const int name_size = 1024;
+  char name[name_size];
+
+  if (!prefix) {
+
+#define kRoot "f:\\mnt\\plate"
+
+    int ret = snprintf(name, name_size, "%s\\%s\\%s\\%02x\\%04x", kRoot, kPrefix
+      , DateString().c_str()
+      , bundle_index / 50, bundle_index % 400);
+    ASSERT(ret > 0);
+  } else {
+    int ret = snprintf(name, name_size, "%s\\%s\\%02x\\%04x", kRoot, prefix
+      , bundle_index / 50, bundle_index % 400);
+    ASSERT(ret > 0);
+  }
+
+  std::string a(name);
+  // hack
+  std::string::size_type pos = a.find('/');
+  if (pos != -1)
+    a = a.replace(pos, 1, 1, '\\');
+  return a;
+#endif  
 }
 
 }

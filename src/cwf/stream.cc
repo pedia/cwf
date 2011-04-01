@@ -135,6 +135,8 @@ bool Request::Init(FCGX_Stream* in, FCGX_ParamArray envp) {
 
     else if(key == "REQUEST_URI")
       url_ = value;
+    else
+      header_[key] = value;
   }
 /*
 "FCGI_ROLE=RESPONDER"	

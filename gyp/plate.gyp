@@ -33,7 +33,7 @@
       'sources': [
 '../src/plate/fslock_test.cc',
 '../src/plate/metaimpl_test.cc',
-# '../src/plate/fuse_test.cc',
+'../src/plate/sixty_test.cc',
       ],
       'include_dirs': [
         '../src',

@@ -26,16 +26,15 @@ struct PlateAction : public BaseAction {
     for (unsigned int i = 0; i < files.size(); ++i) {
       const cwf::Request::FormDisposition & fd = files[i];
 
-      Writer* aw = a->Allocate(fd.data.size());
+      Writer* aw = a->Allocate("test", fd.data.size());
 
-      aw->SetPrefix("test/20011034/foo", 'M', "jpg");
-      int ret = Writer::WriteImpl(
-        aw->index(), aw->offset(), aw->length(),
-        aw->url(), fd.data.c_str(), fd.data.size());
+      aw->SetUrlDetail("test", 0, 'B', "jpg");
+      int ret = aw->Write(fd.data.c_str(), fd.data.size());
 
       if (ret) {
         std::string url("/p/");
         url += aw->url();
+        url += "\n";
         response->WriteRaw(url);
       }
 

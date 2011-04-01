@@ -24,7 +24,7 @@
       'type': 'executable',
       'dependencies': [
         'base3',
-        '../src/testing/gtest.gyp:gtest_main',
+        'gtest.gyp:gtest_main',
       ],
       'conditions':[
         ['OS=="linux"', {'libraries': ['-lboost_system', '-lboost_thread', '-lpthread', '-ltcmalloc'] }],
@@ -42,7 +42,7 @@
       'type': 'executable',
       'dependencies': [
         'base3',
-        '../src/testing/gtest.gyp:gtest_main',
+        'gtest.gyp:gtest_main',
       ],
       'conditions':[
         ['OS=="linux"', {'libraries': ['-lboost_system', '-lboost_thread', '-lpthread', '-ltcmalloc'] }],
