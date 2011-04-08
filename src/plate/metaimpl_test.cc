@@ -71,6 +71,29 @@ TEST(Interface, Bundle) {
   }
 }
 
+TEST(MetaWriter, Stage) {
+  BundleAllocator* a = DefaultAllocator();
+  const int COUNT = 405;
+  Writer* arr[COUNT];
+
+  // use next stage
+  for (int i=0; i<COUNT; i++) {
+    arr[i] = a->Allocate("foo", 1000);
+    std::cout << arr[i]->index() << " ";
+  }
+  std::cout << std::endl;
+  for (int i=0; i<COUNT; i++)
+    a->Return(arr[i]);
+
+  // reuse 1st stage
+  for (int i=0; i<COUNT; i++) {
+    arr[i] = a->Allocate("foo", 1000);
+    std::cout << arr[i]->index() << " ";
+    a->Return(arr[i]);
+  }
+  std::cout << std::endl;
+}
+
 TEST(MetaWriter, Allocate) {
   BundleAllocator* a = DefaultAllocator();
   Writer* aw = a->Allocate("foo", 1000);
@@ -94,7 +117,7 @@ TEST(MetaWriter, Allocate) {
   int this_id = aw->index();
   EXPECT_EQ(1300, aw->length());
   EXPECT_GE(aw->offset(), kBundleHeaderSize);
-  EXPECT_EQ(last_id + 1, this_id);
+  EXPECT_EQ(last_id, this_id);
   last_id = this_id;
   {
     std::string buf(1000, 'c');
@@ -109,7 +132,7 @@ TEST(MetaWriter, Allocate) {
   this_id = aw->index();
   EXPECT_EQ(0, aw->length());
   EXPECT_GE(aw->offset(), kBundleHeaderSize);
-  EXPECT_EQ(last_id + 1, this_id);
+  EXPECT_EQ(last_id, this_id);
   {
     int ret = aw->Write("", 0);
     EXPECT_EQ(0, ret);

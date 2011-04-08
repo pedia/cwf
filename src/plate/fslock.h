@@ -7,6 +7,8 @@
 
 #ifdef OS_LINUX
 #include <unistd.h>
+#elif defined(OS_WIN)
+#include <io.h>
 #endif
 
 #include <string>
@@ -64,10 +66,14 @@ struct FileLock {
   }
 #elif defined(WIN32)
   static bool Lock(const char* name) {
+    int fd = _open(name, _O_CREAT| _O_EXCL, 0);
+    if (-1 == fd)
+      return false;
+    _close(fd);
     return true;
   }
   static bool Unlock(const char* name) {
-    return true;
+    return 0 == _unlink(name);
   }
 #endif
 private:

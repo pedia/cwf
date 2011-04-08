@@ -38,7 +38,7 @@ struct PlateAction : public BaseAction {
         response->WriteRaw(url);
       }
 
-      delete aw;
+      a->Return(aw);
     }
     return HC_OK;
   }

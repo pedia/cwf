@@ -186,6 +186,9 @@ int FastcgiMain(int thread_count, int fd) {
   }
 #endif
 
+  // logging::InitLogging("/data/plate/log", logging::LOG_ONLY_TO_FILE
+  //  , logging::DONT_LOCK_LOG_FILE, logging::APPEND_TO_OLD_LOG_FILE);
+
   base::RunStartupList();
 
 #if 0

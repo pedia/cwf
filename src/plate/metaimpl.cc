@@ -5,17 +5,47 @@
 #include "base3/pathops.h"
 #include "base3/mkdirs.h"
 #include "base3/logging.h"
+#include "base3/atomicops.h"
 
 #include "plate/fslock.h"
 
 namespace plate {
 
+typedef base::subtle::Atomic32 AtomicCount;
+
+inline AtomicCount AtomicCountInc(volatile AtomicCount *ptr,
+     AtomicCount increment = 1) {
+  return base::subtle::NoBarrier_AtomicIncrement(ptr, increment);
+}
+
+inline void AtomicCountStore(volatile AtomicCount *ptr,
+     AtomicCount value) {
+  base::subtle::NoBarrier_Store(ptr, value);
+}
+
+inline AtomicCount AtomicCountLoad(volatile AtomicCount *ptr) {
+  return base::subtle::NoBarrier_Load(ptr);
+}
+
 // TODO: use kRoot
 static const char* kLockNameFormat = "/mnt/mfs/.lock/%08x";
 
-static volatile int last_id_ = 0;
 const int kMaxCount = 50 * 400; // 50 * 400 * 2G = 40T
-const size_t kMaxBundleSize = 2147483648; // 2G
+const size_t kMaxBundleSize = 2 * 1024 * 1024 * 1024; // 2G
+
+static volatile AtomicCount last_id_ = 0;
+
+// 每次写入一定数目的 Bundle 内
+// [0, kStageSize)
+// [kStageSize, kStageSize*2)
+// ...
+// [kStageSize * current_stage_, kStageSize*(current_stage_+1))
+static volatile AtomicCount current_stage_ = 0;
+const int kStageSize = 400;
+
+int CurrentMax() {
+  return kStageSize * (AtomicCountLoad(&current_stage_) + 1);
+}
 
 MetaWriter::~MetaWriter() {
   if (-1 != id_) {
@@ -57,7 +87,10 @@ Writer * MetaAllocator::Allocate(const char* prefix, int length) {
 #endif
   date += DateString();
 
-  id = last_id_;
+  int expose_count = 0; // 文件长度超过的个数
+
+  id = AtomicCountLoad(&last_id_);
+  int prev_id = id;
   do {
     // 1 最小代价找到一个可用文件
     // 2 try lock
@@ -99,19 +132,36 @@ Writer * MetaAllocator::Allocate(const char* prefix, int length) {
     }
 
     id ++;
+    expose_count ++;
 
-    if (id >= kMaxCount) {
-      if (loop_once) {
-        // ASSERT(false);
-        // LOG();
-        // TODO: 发生什么事情了
+    if (id >= CurrentMax() ) {
+      if (expose_count >= kStageSize) {
+        int current_stage = AtomicCountInc(&current_stage_);
+        if (current_stage > kMaxCount/kStageSize) {
+          AtomicCountStore(&current_stage_, 0);
+          LOG(INFO) << "All Stage exposed expose: " << expose_count
+            << " current stage:" << current_stage_;
+          id = 0;
+          continue;
+        }
+      } else {
+        int oldid = id;
+        id = kStageSize * AtomicCountLoad(&current_stage_);
+        LOG(INFO) << "Next Stage expose: " << expose_count
+          << " id: "
+          << prev_id << " > "
+          << oldid << " > " 
+          << id;
+        continue;
       }
-      id = last_expose_;
-      loop_once = true;
     }
   } while (true);
 
-  last_id_ = id + 1;
+  AtomicCountStore(&last_id_, id);
+  VLOG(1) << "Next id: " 
+    << prev_id << " > "
+    << id
+    << " expose: " << expose_count;
 
   DCHECK(filesize >= kBundleHeaderSize);
   Writer* pw = new MetaWriter(id, filename, filesize, length);

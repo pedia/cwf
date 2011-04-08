@@ -336,13 +336,13 @@ std::string BundleFilename(unsigned int bundle_index, const char* prefix) {
   char name[name_size];
 
   if (!prefix) {
-    int ret = snprintf(name, name_size, "%s/%s/%s/%02x/%04x", kRoot, kPrefix
+    int ret = snprintf(name, name_size, "%s/%s/%s/%02d/%04d", kRoot, kPrefix
       , DateString().c_str()
-      , bundle_index / 50, bundle_index % 400);
+      , bundle_index % 50, bundle_index);
     ASSERT(ret > 0); // TODO: use DCHECK
   } else {
-    int ret = snprintf(name, name_size, "%s/%s/%02x/%04x", kRoot, prefix
-      , bundle_index / 50, bundle_index % 400);
+    int ret = snprintf(name, name_size, "%s/%s/%02d/%04d", kRoot, prefix
+      , bundle_index % 50, bundle_index);
     ASSERT(ret > 0); // TODO: use DCHECK
   }
   
@@ -355,13 +355,13 @@ std::string BundleFilename(unsigned int bundle_index, const char* prefix) {
 
 #define kRoot "f:\\mnt\\plate"
 
-    int ret = snprintf(name, name_size, "%s\\%s\\%s\\%02x\\%04x", kRoot, kPrefix
+    int ret = snprintf(name, name_size, "%s\\%s\\%s\\%02d\\%04d", kRoot, kPrefix
       , DateString().c_str()
-      , bundle_index / 50, bundle_index % 400);
+      , bundle_index % 50, bundle_index);
     ASSERT(ret > 0);
   } else {
-    int ret = snprintf(name, name_size, "%s\\%s\\%02x\\%04x", kRoot, prefix
-      , bundle_index / 50, bundle_index % 400);
+    int ret = snprintf(name, name_size, "%s\\%s\\%02d\\%04d", kRoot, prefix
+      , bundle_index % 50, bundle_index);
     ASSERT(ret > 0);
   }
 
