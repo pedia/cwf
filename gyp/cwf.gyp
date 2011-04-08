@@ -14,6 +14,7 @@
           'VCLinkerTool': {'GenerateDebugInformation': 'true',},
           'VCCLCompilerTool': {'DebugInformationFormat': '3',},
         },
+		'include_dirs': ['%(INCLUDE)'],
       },
     },],
   ],

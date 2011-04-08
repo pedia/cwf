@@ -14,7 +14,9 @@
         'msvs_settings': {
           'VCLinkerTool': {'GenerateDebugInformation': 'true',},
           'VCCLCompilerTool': {'DebugInformationFormat': '3',},
+		  'INCLUDEPATH' : '$(BOOST_ROOT)',
         },
+		'include_dirs': ['%(BOOST_ROOT)'],
       },
     },],
   ],
