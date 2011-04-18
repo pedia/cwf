@@ -26,10 +26,12 @@ public:
 
   static void ListAction(std::ostream & ostem);
 
+  static void ResponseError(Response* , HttpStatusCode, const char* message = 0);
+
 private:
   BaseAction* Find(std::string const& url) const;
 
-  void ResponseError(HttpStatusCode, const char*, Response*);
+  
 
   typedef std::list<BaseAction*> ActionListType;
 

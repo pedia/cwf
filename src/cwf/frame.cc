@@ -67,24 +67,18 @@ BaseAction* FrameWork::Find(std::string const& url) const {
 HttpStatusCode FrameWork::Process(Request* request, Response* response) {
   HttpStatusCode rc;
 
-  base::ptime pt("FrameWork::Process", false, 100);
+  // base::ptime pt("FrameWork::Process", false, 100);
 
   BaseAction* a = Find(request->url());
   if (!a) {
-    LOG(INFO) << "Not Found: " << request->url();
-    ResponseError(HC_NOT_FOUND, "Not Found", response);
+    ResponseError(response, HC_NOT_FOUND);
     return HC_NOT_FOUND;
   }
 
-  // XAR_INC(cwfall);
   rc = a->Process(request, response);
 
-  if (pt.wall_clock() > 100)
-    // XAR_INC(prcGT100);
-
   if (HC_OK != rc) {
-    // XAR_INC(cwferr);
-    ResponseError(rc, "Service", response);
+    ResponseError(response, rc);
     return rc;
   }
   return rc;
@@ -110,21 +104,31 @@ void FrameWork::ListAction(std::ostream & ostem) {
   }
 }
 
-void FrameWork::ResponseError(HttpStatusCode code, const char* message, Response* response) {
-  // TODO: 貌似返回非 200 有错误, nginx 不识别？
-  GenerateCommonHeader(&response->header(), code, message);
-  response->OutputHeader();
+struct CodeWithMessage {
+  HttpStatusCode code;
+  const char* message;
+};
 
-  // TODO: status code to template file name
-#if 0
-  ctemplate::TemplateDictionary error_dict_("error"); // TODO: use member?
-  ctemplate::Template* tpl = ctemplate::Template::GetTemplate(
-    "404.tpl", ctemplate::STRIP_WHITESPACE);
-  
-  ASSERT(tpl);
-  if (tpl)
-    tpl->Expand(response, &error_dict_);
-#endif
+const CodeWithMessage kDefaultMessage[] = {
+  {HC_BAD_REQUEST, "Bad Request"},
+  {HC_UNAUTHORIZED, "Unauthorized"},
+
+  {HC_OK, 0}
+};
+
+void FrameWork::ResponseError(Response* response, HttpStatusCode code, const char* message) {
+  if (!message) {
+    for (const CodeWithMessage* cm = &kDefaultMessage[0]; cm->message; cm ++)
+      if (cm->code == code) {
+        message = cm->message;
+        break;
+      }
+
+    if (!message)
+      message = "TODO:";
+  }
+  response->header().set_status_code(code, message);
+  response->OutputHeader();
 }
 
 void FastcgiProc(FrameWork* fw, int fd) {
@@ -147,12 +151,6 @@ void FastcgiProc(FrameWork* fw, int fd) {
     HttpStatusCode rc = fw->Process(q, p);
 
     request_count.Increment();
-    
-#if 0
-    std::string r = p->str();
-    FCGX_PutStr(r.c_str(), r.size(), wrap.out);
-#endif
-    // FCGX_Finish_r(&wrap);
 
     delete p;
     delete q;

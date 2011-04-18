@@ -14,9 +14,7 @@
         'msvs_settings': {
           'VCLinkerTool': {'GenerateDebugInformation': 'true',},
           'VCCLCompilerTool': {'DebugInformationFormat': '3',},
-		  'INCLUDEPATH' : '$(BOOST_ROOT)',
         },
-		'include_dirs': ['%(BOOST_ROOT)'],
       },
     },],
   ],
@@ -32,7 +30,7 @@
         ['OS=="linux"', {'libraries': ['-lboost_system', '-lboost_thread', '-lpthread', '-ltcmalloc'] }],
       ],
       'include_dirs': [
-        '../src', 
+        '../src',
         # '../src/testing/gtest/include',
       ],
       'sources': [
