@@ -1,0 +1,2 @@
+convert
+resize 500x
