@@ -36,13 +36,13 @@ void RunStartupList() {
   ASSERT(!called_);
   called_ = true;
 
-  LOG(INFO) << "StartupList count: " << startup_list_->size();
+  LOG(INFO) << "RunStartupList count: " << startup_list_->size();
   int c = 0;
   BOOST_FOREACH(StartupFunction f, *startup_list_) {
     ++ c;
     f();
   }
-  LOG(INFO) << "StartupList finished: " << c;
+  LOG(INFO) << "RunStartupList done";
 }
 
 void DestoryStartupList() {

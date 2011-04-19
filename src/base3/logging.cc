@@ -35,8 +35,9 @@ typedef HANDLE MutexHandle;
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #define MAX_PATH PATH_MAX
-typedef FILE* FileHandle;
+typedef int FileHandle;
 typedef pthread_mutex_t* MutexHandle;
 #endif
 
@@ -77,15 +78,14 @@ const int kAlwaysPrintErrorLevel = LOG_ERROR;
 // Which log file to use? This is initialized by InitLogging or
 // will be lazily initialized to the default value when it is
 // first needed.
-#if defined(OS_WIN)
-typedef std::wstring PathString;
-#else
 typedef std::string PathString;
-#endif
 PathString* log_file_name_ = NULL;
 
-// this file is lazily opened and the handle may be NULL
-FileHandle log_file_ = NULL;
+#if defined(OS_POSIX)
+#define INVALID_HANDLE_VALUE -1
+#endif
+// this file is lazily opened and the handle may be -1
+FileHandle log_file_ = INVALID_HANDLE_VALUE;
 
 // what should be prepended to each message?
 bool log_process_id = false;
@@ -155,13 +155,13 @@ void CloseFile(FileHandle log) {
 #if defined(OS_WIN)
   CloseHandle(log);
 #else
-  fclose(log);
+  close(log);
 #endif
 }
 
 void DeleteFilePath(const PathString& log_name) {
 #if defined(OS_WIN)
-  DeleteFile(log_name.c_str());
+  DeleteFileA(log_name.c_str());
 #else
   unlink(log_name.c_str());
 #endif
@@ -170,15 +170,15 @@ void DeleteFilePath(const PathString& log_name) {
 PathString GetDefaultLogFile() {
 #if defined(OS_WIN)
   // On Windows we use the same path as the exe.
-  wchar_t module_name[MAX_PATH];
-  GetModuleFileName(NULL, module_name, MAX_PATH);
+  char module_name[MAX_PATH];
+  GetModuleFileNameA(NULL, module_name, MAX_PATH);
 
   PathString log_file = module_name;
   PathString::size_type last_backslash =
       log_file.rfind('\\', log_file.size());
   if (last_backslash != PathString::npos)
     log_file.erase(last_backslash + 1);
-  log_file += L"debug.log";
+  log_file += "debug.log";
   return log_file;
 #elif defined(OS_POSIX)
   // On other platforms we just use the current directory.
@@ -209,16 +209,16 @@ class LoggingLock {
     if (lock_log_file == LOCK_LOG_FILE) {
 #if defined(OS_WIN)
       if (!log_mutex) {
-        std::wstring safe_name;
+        std::string safe_name;
         if (new_log_file)
           safe_name = new_log_file;
         else
           safe_name = GetDefaultLogFile();
         // \ is not a legal character in mutex names so we replace \ with /
         std::replace(safe_name.begin(), safe_name.end(), '\\', '/');
-        std::wstring t(L"Global\\");
+        std::string t("Global\\");
         t.append(safe_name);
-        log_mutex = ::CreateMutex(NULL, FALSE, t.c_str());
+        log_mutex = ::CreateMutexA(NULL, FALSE, t.c_str());
 
         if (log_mutex == NULL) {
 #if DEBUG
@@ -291,7 +291,7 @@ pthread_mutex_t LoggingLock::log_mutex = PTHREAD_MUTEX_INITIALIZER;
 // and can be used for writing. Returns false if the file could not be
 // initialized. debug_file will be NULL in this case.
 bool InitializeLogFileHandle() {
-  if (log_file_)
+  if (INVALID_HANDLE_VALUE != log_file_)
     return true;
 
   if (!log_file_name_) {
@@ -303,12 +303,12 @@ bool InitializeLogFileHandle() {
   if (logging_destination == LOG_ONLY_TO_FILE ||
       logging_destination == LOG_TO_BOTH_FILE_AND_SYSTEM_DEBUG_LOG) {
 #if defined(OS_WIN)
-    log_file_ = CreateFile(log_file_name_->c_str(), GENERIC_WRITE,
+    log_file_ = CreateFileA(log_file_name_->c_str(), GENERIC_WRITE,
                           FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                           OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (log_file_ == INVALID_HANDLE_VALUE || log_file_ == NULL) {
       // try the current directory
-      log_file_ = CreateFile(L".\\debug.log", GENERIC_WRITE,
+      log_file_ = CreateFileW(L".\\debug.log", GENERIC_WRITE,
                             FILE_SHARE_READ | FILE_SHARE_WRITE, NULL,
                             OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
       if (log_file_ == INVALID_HANDLE_VALUE || log_file_ == NULL) {
@@ -318,8 +318,9 @@ bool InitializeLogFileHandle() {
     }
     SetFilePointer(log_file_, 0, 0, FILE_END);
 #elif defined(OS_POSIX)
-    log_file_ = fopen(log_file_name_->c_str(), "a");
-    if (log_file_ == NULL)
+    log_file_ = open(log_file_name_->c_str(), O_WRONLY | O_APPEND | O_CREAT
+      , S_IRUSR|S_IWUSR|S_IRGRP | S_IROTH);
+    if (log_file_ == INVALID_HANDLE_VALUE)
       return false;
 #endif
   }
@@ -352,11 +353,11 @@ bool BaseInitLoggingImpl(const PathChar* new_log_file,
 
   LoggingLock logging_lock;
 
-  if (log_file_) {
+  if (INVALID_HANDLE_VALUE != log_file_) {
     // calling InitLogging twice or after some log call has already opened the
     // default log file will re-initialize to the new options
     CloseFile(log_file_);
-    log_file_ = NULL;
+    log_file_ = INVALID_HANDLE_VALUE;
   }
 
   logging_destination = logging_dest;
@@ -378,11 +379,11 @@ bool BaseInitLoggingImpl(const PathChar* new_log_file,
 void ReopenLogFile() {
   LoggingLock logging_lock;
 
-  if (log_file_) {
+  if (INVALID_HANDLE_VALUE != log_file_) {
     // calling InitLogging twice or after some log call has already opened the
     // default log file will re-initialize to the new options
     CloseFile(log_file_);
-    log_file_ = NULL;
+    log_file_ = INVALID_HANDLE_VALUE;
   }
 
   InitializeLogFileHandle();
@@ -598,8 +599,12 @@ LogMessage::~LogMessage() {
                 &num_written,
                 NULL);
 #else
-      fprintf(log_file_, "%s", str_newline.c_str());
-      fflush(log_file_);
+      // fprintf(log_file_, "%s", str_newline.c_str());
+      ssize_t ret = write(log_file_, str_newline.c_str(), str_newline.size());
+      if (ret < str_newline.size()) {
+        fprintf(stderr, "write failed, %d written.", str_newline.size());
+        fflush(stderr);
+      }
 #endif
     }
   }
@@ -724,11 +729,11 @@ ErrnoLogMessage::~ErrnoLogMessage() {
 void CloseLogFile() {
   LoggingLock logging_lock;
 
-  if (!log_file_)
+  if (INVALID_HANDLE_VALUE == log_file_)
     return;
 
   CloseFile(log_file_);
-  log_file_ = NULL;
+  log_file_ = INVALID_HANDLE_VALUE;
 }
 
 void RawLog(int level, const char* message) {

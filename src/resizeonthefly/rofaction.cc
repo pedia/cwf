@@ -2,11 +2,13 @@
 #include <fstream>
 
 #include "base3/logging.h"
+#include "base3/signals.h"
 #include "base3/hashmap.h"
 #include "base3/startuplist.h"
 #include "base3/globalinit.h"
 #include "base3/url.h"
 #include "base3/string_split.h"
+#include "base3/ptime.h"
 
 #include "cwf/action.h"
 #include "cwf/frame.h"
@@ -16,6 +18,12 @@
 
 namespace rof {
 
+// 没有使用Mount直接访问图片文件
+// 使用了Http来访问，可能稍微慢点
+// 线上 fmnXXX 域名对应于内网域名
+// file content
+// host=10.3.17.172 fmn.xnimg.cn fmn.rrimg.com fmn.xnpic.com fmn.rrfmn.com
+// host=10.3.17.216 fmn.xnimg.cn fmn.rrimg.com fmn.xnpic.com fmn.rrfmn.com
 struct HostMap {
   bool Query(const std::string & host, std::string * ip) const {
     MapType::const_iterator i = map_.find(host);
@@ -28,11 +36,12 @@ struct HostMap {
   }
 
   bool Reload(const std::string & filename) {
+    MapType scoped_map;
+
     std::ifstream stem(filename.c_str());
-#if 0 // file content
-    host=10.3.17.172 fmn.xnimg.cn fmn.rrimg.com fmn.xnpic.com fmn.rrfmn.com
-    host=10.3.17.216 fmn.xnimg.cn fmn.rrimg.com fmn.xnpic.com fmn.rrfmn.com
-#endif
+    if (!stem)
+      return false;
+
     std::string line;
     while (std::getline(stem, line)) {
       std::vector<std::string> res;
@@ -45,7 +54,12 @@ struct HostMap {
           ip = ip.substr(pos + 1);
       }
       for (int i=1; i<res.size(); ++i)
-        map_.insert(std::make_pair(res[i],ip));
+        scoped_map.insert(std::make_pair(res[i],ip));
+    }
+
+    if (!scoped_map.empty()) {
+      // TODO: Lock
+      map_.swap(scoped_map);
     }
     return true;
   }
@@ -55,6 +69,16 @@ struct HostMap {
 };
 
 HostMap hostmap_;
+
+#define SIG_RELOAD_CONF BASE_SIGNAL_CONFIG + 1
+#define kHostMapConf "../conf/image_hosts.conf"
+
+// 使用信号，不停机加载配置文件
+void SigReloadConf(int sig) {
+  LOG(INFO) << "reload " << kHostMapConf;
+  hostmap_.Reload(kHostMapConf);
+}
+
 
 static const std::string kImageType("image/jpeg");
 
@@ -131,21 +155,27 @@ struct ResizeAction : public cwf::BaseAction {
     // retrieve image data
     std::vector<char> buf_for_image;
     buf_for_image.reserve(10 * 1024);
-    bool f = HttpDownload(inner_url, &buf_for_image);
-    if (!f)
-      return cwf::HC_SERVICE_UNAVAILABLE;
+    {
+      PTIME(pt, "query orignal photo", true, false);
+      bool f = HttpDownload(inner_url, &buf_for_image);
+      if (!f)
+        return cwf::HC_SERVICE_UNAVAILABLE;
+    }
 
     {
+      PTIME(pt, "read image", true, false);
       // resize or crop
       AutoImage img;
       if (!img.Init(&buf_for_image[0], buf_for_image.size()))
         return cwf::HC_SERVICE_UNAVAILABLE;
 
+      PTIME_CHECK(pt, "resize image");
       if ("resize" == op)
         img.Resize(w, q);
       else if("crop" == op)
         img.Crop(w, h);
 
+      PTIME_CHECK(pt, "write image");
       // response
       char * buf = 0;
       int length = 0;
@@ -163,6 +193,8 @@ struct ResizeAction : public cwf::BaseAction {
       response->header().Add(cwf::HH_CONTENT_LENGTH, sz);
 
       response->WriteRawWithHeader(buf, length);
+
+      img.Free(buf);
     }
     
     return cwf::HC_OK;
@@ -172,9 +204,11 @@ struct ResizeAction : public cwf::BaseAction {
 static void Init() {
   cwf::FrameWork::RegisterAction(new ResizeAction);
 
-  hostmap_.Reload("../conf/image_hosts.conf");
+  hostmap_.Reload(kHostMapConf);
 
   InitMagickLib();
+
+  base::InstallSignal(SIG_RELOAD_CONF, SigReloadConf);
 }
 
 }

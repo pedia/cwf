@@ -7,6 +7,8 @@
 
 #include "resizeonthefly/pichelper.h"
 
+#include "google/profiler.h"
+
 #include "magick/magick.h"
 #include "magick/constitute.h"
 #include "magick/resize.h"
@@ -14,6 +16,7 @@
 
 using namespace rof;
 
+#if 0
 TEST(PicHelper, SizeCheck) {
   Size target;
   EXPECT_TRUE(SizeCheck(Size(1, 1), target));
@@ -38,15 +41,20 @@ TEST(PicHelper, SizeCheck) {
   EXPECT_TRUE(SizeCheck(Size(500, 800), target));
   EXPECT_EQ(target, Size(500, 800));
 }
+#endif
 
 class WithGraphMagick: public testing::Test {
 protected:
   void SetUp() {
     char* argv = {0};
     InitializeMagick(argv);
+
+    ProfilerStart("/tmp/withgm.perf");
   }
   void TearDown() {
     DestroyMagick();
+
+    ProfilerStop();
   }
 };
 
@@ -94,7 +102,7 @@ TEST_F(WithGraphMagick, Blob) {
   bool f = ai.Init(&data[0],data.size());
   ASSERT_TRUE(f);
 
-  void *p = 0;
+  char *p = 0;
   int size = 0;
   f = ai.WriteToBlob(&p, &size);
   EXPECT_TRUE(f);

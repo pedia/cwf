@@ -22,6 +22,7 @@ static void show_help () {
     " -d <directory> chdir to directory before spawning\n" \
     " -a <address>   bind to IPv4/IPv6 address (defaults to 0.0.0.0)\n" \
     " -p <port>      bind to TCP-port\n" \
+    " -l <file>      log file name\n" \
     " -t <thread>    thread count\n" \
     " -s <path>      bind to Unix domain socket\n" \
     " -M <mode>      change Unix domain socket mode\n" \
@@ -45,13 +46,14 @@ int main(int argc, char* argv[]) {
   const char * unixsocket = 0;
   int sockmode = 0; // 缺省值从 -1 改为 0 了
   char * fcgi_dir = 0;
+  char * log_filename = 0;
   int thread_count = 0;
 
   int fork_count = 0;
 
   int o;
 
-  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:s:?he"))) {
+  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:l:s:?he"))) {
     switch(o) {
     case 'e' : 
       // disable std::err log
@@ -61,6 +63,7 @@ int main(int argc, char* argv[]) {
       base::DestoryStartupList();
       return 0;
     case 'd': fcgi_dir = optarg; break;
+    case 'l': log_filename = optarg; break;
     case 'a': addr = optarg;/* ip addr */ break;
     case 'p': 
       {
@@ -111,9 +114,9 @@ int main(int argc, char* argv[]) {
 
   // child
   if (rc == -1 && fork_count > 0) {
-    return cwf::FastcgiMain(thread_count, 0);
+    return cwf::FastcgiMain(thread_count, 0, log_filename);
   }
 #endif
 
-  return cwf::FastcgiMain(thread_count, rc);
+  return cwf::FastcgiMain(thread_count, rc, log_filename);
 }

@@ -4,7 +4,7 @@
     ['OS=="linux"', {
       'target_defaults': {
         'cflags': ['-fPIC', '-g', '-O2',],
-        'defines': ['OS_LINUX','BASE_DISABLE_POOL'],
+        'defines': ['OS_LINUX','BASE_DISABLE_POOL', 'USE_PROFILER'],
       },
     },],
     ['OS=="win"', {
@@ -86,8 +86,7 @@
       'type': 'static_library',
       'msvs_guid': '9301A569-5D2B-4D11-9332-B1E30AEACB8D',
       'include_dirs': ['../src'],
-      'dependencies': [
-      ],
+      'dependencies': [],
       'sources': [
 # '../src/base3/asyncall.cc',
 # '../src/base3/asyncall.h',
@@ -256,7 +255,7 @@
         }],
         ['OS=="linux"', {
           'direct_dependent_settings': {
-            'libraries': ['-lrt', '-ltcmalloc', '-lpthread'],
+            'libraries': ['-lrt', '-ltcmalloc_and_profiler', '-lpthread'],
           },
         }],
       ],

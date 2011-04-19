@@ -141,11 +141,7 @@ enum LogLockingState { LOCK_LOG_FILE, DONT_LOCK_LOG_FILE };
 enum OldFileDeletionState { DELETE_OLD_LOG_FILE, APPEND_TO_OLD_LOG_FILE };
 
 // TODO(avi): do we want to do a unification of character types here?
-#if defined(OS_WIN)
-typedef wchar_t PathChar;
-#else
 typedef char PathChar;
-#endif
 
 // Define different names for the BaseInitLoggingImpl() function depending on
 // whether NDEBUG is defined or not so that we'll fail to link if someone tries

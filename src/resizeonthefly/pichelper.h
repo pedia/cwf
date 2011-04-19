@@ -47,6 +47,8 @@ struct AutoImage {
 
   bool WriteToBlob(char ** bufptr, int * size);
 
+  void Free(void * buf);
+
   void Set(Image* new_img) {
     if (img_)
       DestroyImage(img_);

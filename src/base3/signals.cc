@@ -14,12 +14,9 @@
 #include "base3/startuplist.h"
 #include "base3/globalinit.h"
 
-#ifdef OS_LINUX
+#if defined(OS_LINUX) && defined(USE_BREAKPAD)
+// in 3rdparty
 extern bool RequestMinidump(const std::string &dump_path);
-#elif defined(OS_WIN)
-bool RequestMinidump(const std::string &dump_path) {
-  return true;
-}
 #endif
 
 namespace base {
@@ -50,8 +47,10 @@ static void SignalProfile(int sig) {
 
 static void SignalCrash(int sig) {
   ASSERT(BASE_SIGNAL_MINIDUMP == sig);
-  if (BASE_SIGNAL_MINIDUMP == sig) {    
+  if (BASE_SIGNAL_MINIDUMP == sig) {
+#if defined(OS_LINUX) && defined(USE_BREAKPAD)
     ::RequestMinidump(".");
+#endif
   } 
   else if (BASE_SIGNAL_CRASH == sig) {
     *(char *)0 = 'a';

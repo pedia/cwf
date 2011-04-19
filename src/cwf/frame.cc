@@ -14,7 +14,6 @@
 
 #include "base3/common.h"
 #include "base3/logging.h"
-// #include "base3/logrotate.h"
 #include "base3/startuplist.h"
 #include "base3/ptime.h"
 #include "base3/metrics/stats_counters.h"
@@ -65,22 +64,20 @@ BaseAction* FrameWork::Find(std::string const& url) const {
 // XAR_IMPL(cwfall);
 // XAR_IMPL(prcGT100);
 HttpStatusCode FrameWork::Process(Request* request, Response* response) {
-  HttpStatusCode rc;
-
-  // base::ptime pt("FrameWork::Process", false, 100);
-
+  base::ptime pt("", false);
   BaseAction* a = Find(request->url());
   if (!a) {
     ResponseError(response, HC_NOT_FOUND);
     return HC_NOT_FOUND;
   }
 
-  rc = a->Process(request, response);
+  // TODO: access log here
+  HttpStatusCode rc = a->Process(request, response);
 
-  if (HC_OK != rc) {
+  if (HC_OK != rc)
     ResponseError(response, rc);
-    return rc;
-  }
+
+  LOG(INFO) << pt.wall_clock() << " " << rc << " " << request->url();
   return rc;
 }
 
@@ -159,18 +156,27 @@ void FastcgiProc(FrameWork* fw, int fd) {
 
 extern void InstallDefaultAction();
 
-int FastcgiMain(int thread_count, int fd) {
-  // xce::Start();
+int FastcgiMain(int thread_count, int fd, const char * log_filename) {
+  if (log_filename) {
+    using namespace logging;
+    InitLogging(log_filename, LOG_ONLY_TO_FILE
+      , DONT_LOCK_LOG_FILE
+      , APPEND_TO_OLD_LOG_FILE);
 
-  InstallDefaultAction();
+    // pid, thread_id, timestamp, tickcount
+    SetLogItems(true, true, true, false);
 
-  const char* log_dir = 0;
-#if defined(POSIX) || defined(OS_LINUX)
-  // find cwf log directory, if you are root user, then /data/cwf/logs, else $HOME/cwf/logs, that's it!
-  struct passwd* pw;
-  pw = getpwuid(getuid());
-  log_dir = (0==strcmp(pw->pw_name, "root")) ? "/data" : pw->pw_dir;
-#endif
+    // LOG(ERROR) << "log level " << GetMinLogLevel();
+  }
+
+  base::RunStartupList();
+
+// #if defined(POSIX) || defined(OS_LINUX)
+//   // find cwf log directory, if you are root user, then /data/cwf/logs, else $HOME/cwf/logs, that's it!
+//   struct passwd* pw;
+//   pw = getpwuid(getuid());
+//   log_dir = (0==strcmp(pw->pw_name, "root")) ? "/data" : pw->pw_dir;
+// #endif
 
 #if 0
   {
@@ -186,8 +192,6 @@ int FastcgiMain(int thread_count, int fd) {
 
   // logging::InitLogging("/data/plate/log", logging::LOG_ONLY_TO_FILE
   //  , logging::DONT_LOCK_LOG_FILE, logging::APPEND_TO_OLD_LOG_FILE);
-
-  base::RunStartupList();
 
 #if 0
   {
@@ -226,8 +230,7 @@ int FastcgiMain(int thread_count, int fd) {
   }
 
   int ret = FCGX_Init();
-  ASSERT(0 == ret);
-  LOG(INFO) << "FCGX_Init result " << ret;
+  LOG_ASSERT(ret == 0) << "FCGX_Init result " << ret;
 
   boost::thread_group g;
   for (int i=0; i<thread_count; ++i)

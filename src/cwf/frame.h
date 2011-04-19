@@ -40,7 +40,7 @@ private:
   ActionListType host_action_;
 };
 
-int FastcgiMain(int thread_count, int fd);
+int FastcgiMain(int thread_count, int fd, const char * log_filename = NULL);
 
 }
 #endif // CWF_FRAME_H__

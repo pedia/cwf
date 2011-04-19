@@ -2,7 +2,7 @@
   'conditions': [
     ['OS=="linux"', {
       'target_defaults': {
-        'cflags': ['-fPIC', '-g', '-O2', '-pthread'],
+        'cflags': ['-fPIC', '-g', '-O3', '-pthread'],
         'defines': ['OS_LINUX'],
       },
     },],

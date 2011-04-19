@@ -152,6 +152,10 @@ bool AutoImage::WriteToBlob(char ** bufptr, int * size) {
   return p != NULL;
 }
 
+void AutoImage::Free(void * buf) {
+  MagickFree(buf);
+}
+
 bool AutoImage::Crop(int width, int height) {
   if (img_->columns <= width && img_->rows <= height)
     return true;
