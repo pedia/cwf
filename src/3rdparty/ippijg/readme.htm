@@ -1,0 +1,551 @@
+<html>
+
+<head>
+    <title>
+    Intel&reg; IPP Samples -
+    IJG Implementation for Linux*
+    </title>
+</head>
+
+<body>
+
+
+<h1 align="center">
+    Intel<sup>&reg;</sup> Integrated Performance Primitives
+    <br />
+    IJG Implementation for Linux*
+</h1>
+
+
+<p>
+<b>
+<a href="#IPP_SAMPLES__License_Definitions">                    License Definitions                    </a><br />
+<a href="#IPP_SAMPLES__Overview">                               Overview                               </a><br />
+<a href="#IPP_SAMPLES__System_Requirements">                    System Requirements                    </a><br />
+<a href="#IPP_SAMPLES__Package_Contents">                       Package Contents                       </a><br />
+<a href="#IPP_SAMPLES__Installation">                           Installation                           </a><br />
+<a href="#IPP_SAMPLES__How_to_Build_Source_Code">               How to Build Source Code               </a><br />
+<a href="#IPP_SAMPLES__Running_the_Sample">                     Running the Sample                     </a><br />
+<a href="#IPP_SAMPLES__Technical_Support_and_Feedback">         Technical Support and Feedback         </a><br />
+<a href="#IPP_SAMPLES__Disclaimer">                             Disclaimer                             </a><br />
+</b>
+</p>
+
+<hr />
+
+
+<h2>
+<a name="IPP_SAMPLES__License_Definitions">
+License Definitions</a>
+</h2>
+
+<p>
+By downloading and installing this sample, you hereby agree that the
+accompanying Materials are being provided to you under the terms and conditions
+of the End User License Agreement for the Intel&reg; Integrated Performance
+Primitives product previously accepted by you. Please refer to the file
+<b><tt>ippEULA.rtf</tt></b> or <b><tt>ippEULA.txt</tt></b> located in the root
+directory of your Intel&reg; IPP product installation for more information.
+</p>
+
+<p>
+JPEG is an international standard promoted by ISO/IEC (ISO Web:
+<tt>www.iso.org</tt>) and other organizations. Implementations of these
+standards, or the standard enabled platforms may require licenses from various
+entities, including Intel Corporation.
+</p>
+
+
+<h2>
+<a name="IPP_SAMPLES__Overview">
+Overview</a>
+</h2>
+
+<p>
+This sample demonstrates how to use the Intel&reg; Integrated Performance
+Primitives (Intel&reg; IPP) libraries to increase the performance of the
+Independent JPEG Group (IJG) library. The detailed description of the
+modification of the IJG library by means of embedded Intel&reg; IPP functions
+may be found in the document
+<i>&quot;IJG Library Modification by Using IPP&quot;</i>
+that is included in this package (<a href="doc/ijg_ipp.pdf">ijg_ipp.pdf</a>).
+The JPEG decoder is based on the international standard ISO/IEC 10918-1.
+</p>
+
+<p>
+Additional information on this software as well as other Intel software
+performance products is available at 
+<a href="http://www.intel.com/software/products/">
+http://www.intel.com/software/products/</a>.
+</p>
+
+
+<h2>
+<a name="IPP_SAMPLES__System_Requirements">
+System Requirements</a>
+</h2>
+
+
+<B>
+Recommended hardware:
+</B>
+<ul>
+    <li>A system based on the Intel&reg; Pentium&reg; 4 processor with 128 
+        megabytes of RAM, or better</li>
+    <li>A system based on a Intel&reg; Pentium&reg; D processor
+        with Intel&reg; Extended Memory 64 Technology</li>
+</ul>
+
+<B>
+Hardware requirements:
+</B>
+<ul>
+    <li>A system based on a Intel&reg; Pentium&reg; processor,
+        Intel&reg; Xeon&reg; processor, or subsequent IA-32 processor</li>
+    <li>A system based on a Intel&reg; Pentium&reg; D processor
+        with Intel&reg; Extended Memory 64 Technology</li>
+</ul>
+
+<B>
+Software requirements:
+</B>
+<ul>
+    <li>Intel&reg; IPP 7.0 for Linux*</li>
+    <li>Intel&reg; C++ Compiler for Linux*: version 11.1 or 12.0</li>
+    <li>Red Hat Enterprise Linux 5.*</li>
+    <li>GCC 3.2</li>
+</ul>
+
+
+<h2>
+<a name="IPP_SAMPLES__Package_Contents">
+Package Contents</a>
+</h2>
+
+
+<p class="MsoNormal" style="MARGIN-BOTTOM: 12pt">
+The  
+<b>
+Intel  
+<sup>
+&reg;  
+</sup>
+IPP IJG Implementation for Linux*  
+</b>
+package contains the following files:  
+</p>
+<table border="1" cellPadding="0" style="mso-cellspacing: 1.5pt; mso-padding-alt: 0cm 0cm 0cm 0cm" width="99%">
+<tr>
+<span style="mso-bidi-font-size: 10.0pt">
+<td style="padding: 0.75pt" bgcolor="#C0C0C0" colspan="2" width="589">
+<b>
+.\ipp_samples\image-codecs\  
+</b>
+</td>
+</span>
+</tr>
+<tr>
+<span style="mso-bidi-font-size: 10.0pt">
+<td style="padding: 0.75pt" width="254">
+ippEULA.rtf or ippEULA.txt  
+</td>
+<td style="padding: 0.75pt" width="329">
+End User License Agreement  
+<span lang=EN-US style='mso-ansi-language:EN-US'>
+<o:p>
+</o:p>
+</span>
+</td>
+</span>
+</tr>
+<tr>
+<span style="mso-bidi-font-size: 10.0pt">
+<td style="padding: 0.75pt" width="254">
+<span style="mso-bidi-font-size: 10.0pt">
+support.txt  
+</span>
+</td>
+<td style="padding: 0.75pt" width="329">
+Contains information for technical support  
+</td>
+</span>
+</tr>
+<tr>
+<td bgColor="#c0c0c0" colSpan="2" style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="98%">
+<b>
+.\ipp_samples\image-codecs\ijg\  
+</b>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+<p class="MsoNormal">
+readme.htm  
+</p>
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+<p class="MsoNormal">
+This file  
+</p>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+Makefile  
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+Makefile to build this sample  
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+linux32.ini, linux64.ini, linuxem64t.ini  
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+Initialization for tools  
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+<p class="MsoNormal">
+build_ia32.sh, build_intel64.sh  
+</p>
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+<p class="MsoNormal">
+Command file to build this sample  
+</p>
+</td>
+</tr>
+<tr>
+<td bgColor="#c0c0c0" colSpan="2" style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="98%">
+<b>
+.\ipp_samples\image-codecs\ijg\doc\  
+</b>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+<p class="MsoNormal">
+change.log, coderules.doc, filelist.doc, install.doc, jconfig.doc, libjpeg.doc, README, structure.doc, usage.doc, wizard.doc, ijg_ipp.xls, IJG_IPP.pdf  
+</p>
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+IJG documentation  
+</td>
+</tr>
+<tr>
+<td bgColor="#c0c0c0" colSpan="2" style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="98%">
+<b>
+.\ipp_samples\image-codecs\ijg\include\  
+</b>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+<p class="MsoNormal">
+jconfig.h, jerror.h, jmorecfg.h, jpeglib.h, jversion.h  
+</p>
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+External IJG header files  
+</td>
+</tr>
+<tr>
+<td bgColor="#c0c0c0" colSpan="2" style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="98%">
+<b>
+.\ipp_samples\image-codecs\ijg\_include\  
+</b>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+jinclude.h, jmemsys.h, jpegint.h, jpegipp.h  
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+Internal IJG header files  
+</td>
+</tr>
+<tr>
+<td bgColor="#c0c0c0" colSpan="2" style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="98%">
+<b>
+.\ipp_samples\image-codecs\ijg\_src\  
+</b>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+jcapimin.c, jcapistd.c, jccoefct.c, jccolor.c, jcdctmgr.c, jchuff.c, jchuff.h, jcinit.c, jcmainct.c, jcmarker.c, jcmaster.c, jcomapi.c, jcparam.c, jcphuff.c, jcprepct.c, jcsample.c, jctrans.c, jdapimin.c, jdapistd.c, jdatadst.c, jdatasrc.c, jdcoefct.c, jdcolor.c, jdct.h, jddctmgr.c, jdhuff.c, jdhuff.h, jdinput.c, jdmainct.c, jdmarker.c, jdmaster.c, jdmerge.c, jdphuff.c, jdpostct.c, jdsample.c, jdtrans.c, jerror.c, jfdctflt.c, jfdctfst.c, jfdctint.c, jidctflt.c, jidctfst.c, jidctint.c, jidctred.c, jmemmgr.c, jmemnobs.c, jquant1.c, jquant2.c, jutils.c  
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+Source code files  
+</td>
+</tr>
+<tr>
+<td bgColor="#c0c0c0" colSpan="2" style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="98%">
+<b>
+.\ipp_samples\image-codecs\ijg\samples\utils  
+</b>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+cderror.h, cdjpeg.c, cdjpeg.h, cjpeg.c, djpeg.c, jpegtran.c, rdbmp.c, rdcolmap.c, rdgif.c, rdjpgcom.c, rdppm.c, rdrle.c, rdswitch.c, rdtarga.c, testimg.bmp, testimg.jpg, testimg.ppm, testimgp.jpg, testorig.jpg, testprog.jpg, transupp.c, transupp.h, wrbmp.c, wrgif.c, wrjpgcom.c, wrppm.c, wrrle.c, wrtarga.c  
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+IJG sample files  
+</td>
+</tr>
+<tr>
+<td bgColor="#c0c0c0" colSpan="2" style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="98%">
+<b>
+.\ipp_samples\image-codecs\ijg\samples\ijgtiming  
+</b>
+</td>
+</tr>
+<tr>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt; WIDTH: 39.82%" width="39%">
+ijg_timing.c  
+</td>
+<td style="PADDING-BOTTOM: 0.75pt; PADDING-LEFT: 0.75pt; PADDING-RIGHT: 0.75pt; PADDING-TOP: 0.75pt" width="59%">
+Sample to estimate IJG performance  
+</td>
+</tr>
+</table>
+
+
+<h2>
+<a name="IPP_SAMPLES__Installation">
+Installation</a>
+</h2>
+
+<p>
+Extract all files in <tt>l_ipp-samples-*.tgz</tt> to a desired folder. Please
+make sure to preserve the directory structure. The files for this sample will be
+found in the <tt>./ipp_samples/image-codecs/ijg folder</tt>.
+</p>
+
+
+<h2>
+<a name="IPP_SAMPLES__How_to_Build_Source_Code">
+How to Build Source Code</a>
+</h2>
+
+<DIV id=HBSC>
+
+<ul>
+    <li>Set up your build environment by creating an environment variable named
+	<tt><b>IPPROOT</b></tt> that points to the root directory of your
+	Intel&reg; IPP installation. For example:
+
+	<ul>
+	<li>for Stand Alone and Compiler XE: /opt/intel/composerxe-2011/ipp</li>
+	</ul>
+    </li><p>
+    <li>To build for an IA-32 system:<ul><li>Run <tt>build_ia32.bat</tt></li></ul></li>
+    <li>To build for an Intel&reg;64 system:<ul><li>Run <tt>build_intel64.bat</tt></li></ul></li>
+</ul>
+
+<p>
+As a result of build you will find static IJG library, shared IJG library, set of IJG tools and simple test program in ./bin/linux32 folder (or appropriate for other platform). The output binary files will have the names: libijg.ipp.a, libijg.ipp.so, cjpeg, djpeg, jpegtran, rdjpgcom, wrjpgcom and ijg_timing.  
+</p>
+
+<p>
+Note, with default settings it will build sample using Intel&reg; C++ compiler.
+To change defaults see Makefile for brief description of the available variables and additional options.  
+</p>
+
+</DIV>
+
+<h2>
+<a name="IPP_SAMPLES__Running_the_Sample">
+Running the Sample</a>
+</h2>
+
+
+<P>
+<span style="mso-bidi-font-size: 10.0pt">
+You can run the desired JPEG utility (for example,  
+</span>
+<span style="FONT-FAMILY: 'Courier New'; FONT-SIZE: 9pt; mso-bidi-font-size: 7.5pt">
+cjpeg  
+</span>
+<span style="mso-bidi-font-size: 7.5pt">
+,  
+</span>
+<span style="FONT-FAMILY: 'Courier New'; FONT-SIZE: 9pt; mso-bidi-font-size: 7.5pt">
+djpeg  
+</span>
+<span style="mso-bidi-font-size: 7.5pt">
+,  
+</span>
+<span style="FONT-FAMILY: 'Courier New'; FONT-SIZE: 9pt; mso-bidi-font-size: 7.5pt">
+ijg_timing  
+</span>
+<span style="mso-bidi-font-size: 10.0pt">
+<span style="mso-spacerun: yes">
+&nbsp;  
+</span>
+and so on by typing its name  
+<span style="mso-spacerun: yes">
+&nbsp;  
+</span>
+in the command line. To see the list of available options a name should be entered with the switch  
+</span>
+<span style="FONT-FAMILY: 'Courier New'; FONT-SIZE: 9pt; mso-bidi-font-size: 7.5pt">
+-?  
+</span>
+<span style="mso-bidi-font-size: 10.0pt">
+.  
+<o:p>
+&nbsp;  
+</o:p>
+</span>
+<o:p>
+<P>
+In order to run each executable created by this sample, the Intel&reg; IPP shared libraries and created IJG shared library must be on the operating system loader search path. At the install stage shared libraries are located in sharedlib subdirectory of the root directory of the Intel&reg; IPP installation (IPPROOT). You can set up the correct Intel  
+<o:p>
+&reg;  
+</o:p>
+IPP environment variables manually or invoking the appropriate command file, for example for IA32: &quot;$(IPPROOT)/tools/env/ippenv32.sh&quot; from the Intel&reg; IPP installationt. You also will need to add this sample's bin folder to LD_LIBRARY_PATH environment variable, for example invoking this line at command prompt: export LD_LIBRARY_PATH=~/  
+</o:p>
+ipp_samples/image-codecs/ijg/bin/linux32:$LD_LIBRARY_PATH  
+
+
+<h2>
+<a name="IPP_SAMPLES__Technical_Support_and_Feedback">
+Technical Support and Feedback</a> 
+</h2>
+
+<p>
+To receive support or provide feedback refer to the 
+&quot;<i>Technical Support and Feedback</i>&quot; section of the release notes
+(<b><tt>ReleaseNotes.htm</tt></b>) provided in the Intel&reg; IPP product
+installation.
+</p>
+<p>
+Your feedback on the Intel IPP samples is very important to us and your input
+will be considered for future releases. The Intel IPP sample code is intended
+only as an example of how to use the APIs to implement algorithms in different
+development environments. Please submit problems with installation, compiling,
+linking, runtime errors or incorrect output to
+<a href="https://premier.intel.com/"> Intel&reg; Premier Support</a>.
+</p>
+<p>
+You can also share and discuss the experience of IPP sample usage with other
+developers at
+<a href="http://software.intel.com/en-us/forums/">Intel Software Developer Forum</a>.
+</p>
+
+
+<p id="IPP_SAMPLES__OptNotice">
+<table border="1" cellspacing="0" cellpadding="5" rules="none">
+<tr><th style="height:30px; color:white; background-color:#555555" valign="center" align="left">Optimization Notice</th></tr>
+<tr bgcolor="#ccecff" align="left">
+  <td>
+   <p>The Intel&reg; Integrated Performance Primitives (Intel&reg; IPP) library
+  contains functions that are more highly optimized for Intel microprocessors
+  than for other microprocessors. While the functions in the Intel&reg; IPP
+  library offer optimizations for both Intel and Intel-compatible
+  microprocessors, depending on your code and other factors, you will likely
+  get extra performance on Intel microprocessors.</p>
+   <p>While the
+  paragraph above describes the basic optimization approach for the Intel&reg;
+  IPP library as a whole, the library may or may not be optimized to the same
+  degree for non-Intel microprocessors for optimizations that are not unique to
+  Intel microprocessors. These optimizations include Intel&reg; Streaming SIMD
+  Extensions 2 (Intel&reg; SSE2), Intel&reg; Streaming SIMD Extensions 3
+  (Intel&reg; SSE3), and Supplemental Streaming SIMD Extensions 3 (Intel&reg;
+  SSSE3) instruction sets and other optimizations. Intel does not guarantee the
+  availability, functionality, or effectiveness of any optimization on
+  microprocessors not manufactured by Intel. Microprocessor-dependent
+  optimizations in this product are intended for use with Intel microprocessors.</p>
+   <p>Intel recommends that you evaluate
+  other library products to determine which best meets your requirements.</p>
+  </td>
+</tr>
+</table>
+</p>
+
+<h2>
+<a name="IPP_SAMPLES__Disclaimer">
+Disclaimer</a>
+</h2>
+
+<font size="-3">
+
+<p>
+INFORMATION IN THIS DOCUMENT IS PROVIDED IN CONNECTION WITH INTEL PRODUCTS.
+NO LICENSE, EXPRESS OR IMPLIED, BY ESTOPPEL OR OTHERWISE, TO ANY INTELLECTUAL
+PROPERTY RIGHTS IS GRANTED BY THIS DOCUMENT. EXCEPT AS PROVIDED IN INTEL'S
+TERMS AND CONDITIONS OF SALE FOR SUCH PRODUCTS, INTEL ASSUMES NO LIABILITY
+WHATSOEVER, AND INTEL DISCLAIMS ANY EXPRESS OR IMPLIED WARRANTY, RELATING
+TO SALE AND/OR USE OF INTEL PRODUCTS INCLUDING LIABILITY OR WARRANTIES
+RELATING TO FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, OR INFRINGEMENT
+OF ANY PATENT, COPYRIGHT OR OTHER INTELLECTUAL PROPERTY RIGHT.
+<br /> 
+UNLESS OTHERWISE AGREED IN WRITING BY INTEL, THE INTEL PRODUCTS ARE NOT DESIGNED
+NOR INTENDED FOR ANY APPLICATION IN WHICH THE FAILURE OF THE INTEL PRODUCT COULD
+CREATE A SITUATION WHERE PERSONAL INJURY OR DEATH MAY OCCUR.
+</p>
+
+<p>
+Intel may make changes to specifications and product descriptions at any time,
+without notice. Designers must not rely on the absence or characteristics of any
+features or instructions marked "reserved" or "undefined." Intel reserves these
+for future definition and shall have no responsibility whatsoever for conflicts
+or incompatibilities arising from future changes to them. The information here
+is subject to change without notice. Do not finalize a design with this
+information. 
+<br />
+The products described in this document may contain design defects or errors
+known as errata which may cause the product to deviate from published
+specifications. Current characterized errata are available on request.
+<br /> 
+Contact your local Intel sales office or your distributor to obtain the latest
+specifications and before placing your product order.
+<br />
+Copies of documents which have an order number and are referenced in this
+document, or other Intel literature, may be obtained by calling 1-800-548-4725,
+or go to:
+<a href="http://www.intel.com/#/en_US_01">
+http://www.intel.com/#/en_US_01 </a>
+<br />
+Intel processor numbers are not a measure of performance. Processor numbers
+differentiate features within each processor family, not across different
+processor families. See
+<a href="http://www.intel.com/products/processor_number">
+http://www.intel.com/products/processor_number </a>
+for details.
+</p>
+
+<p>
+BunnyPeople, Celeron, Celeron Inside, Centrino, Centrino Inside, Core Inside,
+i960, Intel, the Intel logo, Intel Atom, Intel Atom Inside, Intel Core,
+Intel Inside, Intel Inside logo, Intel NetBurst, Intel NetMerge,
+Intel NetStructure, Intel SingleDriver, Intel SpeedStep,
+Intel Sponsors of Tomorrow., the Intel Sponsors of Tomorrow. logo,
+Intel StrataFlash, Intel Viiv, Intel vPro, Intel XScale, InTru, the InTru logo,
+InTru soundmark, Itanium, Itanium Inside, MCS, MMX, Moblin, Pentium,
+Pentium Inside, skoool, the skoool logo, Sound Mark, The Journey Inside,
+vPro Inside, VTune, Xeon, and Xeon Inside
+are trademarks of Intel Corporation in the U.S. and other countries.
+<br />
+* Other names and brands may be claimed as the property of others.
+</p>
+
+<p>
+Microsoft, Windows, Visual Studio, Visual C++, and the Windows logo are
+trademarks, or registered trademarks of Microsoft Corporation
+in the United States and/or other countries.
+</p>
+
+</font>
+
+<p id="IPP_SAMPLES__Copyright">
+Copyright (C) 2002-2010, Intel Corporation. All rights reserved.
+</p>
+
+
+</body>
+</html>

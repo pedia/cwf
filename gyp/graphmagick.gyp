@@ -1,4 +1,5 @@
 {
+  #'variables' : {'ippijg' : 0},
   'conditions': [
     ['OS=="linux"', {
       'target_defaults': {
@@ -285,7 +286,7 @@
       'type': 'static_library',
       'msvs_guid': 'A5CC0608-3FB8-44B0-9F81-48049848D0E4',
       'dependencies': [
-        'libjpeg.gyp:libjpeg',
+        #'libjpeg.gyp:libjpeg',
         'libpng.gyp:libpng',
         'magick',
       ],
@@ -294,8 +295,15 @@
       ],
       'include_dirs': [
         '../src/3rdparty/libpng-stable',
-        '../src/3rdparty/jpeg-stable',
         '../src/3rdparty/zlib-stable',
+      ],
+      'conditions':[
+        ['ippijg==1', {
+          'dependencies': ['ippijg.gyp:ippijg',],
+        },],
+        ['ippijg==0', {
+          'dependencies': ['libjpeg.gyp:libjpeg',],
+        },],
       ],
       'sources': [
 '../src/3rdparty/GraphicsMagick-stable/coders/jpeg.c',
