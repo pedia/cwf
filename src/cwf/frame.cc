@@ -145,7 +145,7 @@ void FastcgiProc(FrameWork* fw, int fd) {
 
     HttpStatusCode rc = fw->Process(q, p);
 
-    LOG(INFO) << pt.wall_clock() << " " << rc << " " << request->url();
+    LOG(INFO) << pt.wall_clock() << " " << rc << " " << q->url();
 
     request_count.Increment();
 

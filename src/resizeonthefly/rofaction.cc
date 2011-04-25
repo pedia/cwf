@@ -84,7 +84,7 @@ static const std::string kImageType("image/jpeg");
 
 struct ResizeAction : public cwf::BaseAction {
   virtual bool Match(const std::string& url) const {
-    return url.find("/gi?") == 0;
+    return url.find("/gi?") == 0 || url.find("/test/gi?") == 0;
   }
 
   virtual cwf::HttpStatusCode Process(cwf::Request * request, cwf::Response * response) {
