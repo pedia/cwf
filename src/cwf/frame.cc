@@ -64,7 +64,6 @@ BaseAction* FrameWork::Find(std::string const& url) const {
 // XAR_IMPL(cwfall);
 // XAR_IMPL(prcGT100);
 HttpStatusCode FrameWork::Process(Request* request, Response* response) {
-  base::ptime pt("", false);
   BaseAction* a = Find(request->url());
   if (!a) {
     ResponseError(response, HC_NOT_FOUND);
@@ -76,8 +75,7 @@ HttpStatusCode FrameWork::Process(Request* request, Response* response) {
 
   if (HC_OK != rc)
     ResponseError(response, rc);
-
-  LOG(INFO) << pt.wall_clock() << " " << rc << " " << request->url();
+  
   return rc;
 }
 
@@ -136,7 +134,7 @@ void FastcgiProc(FrameWork* fw, int fd) {
   base::StatsCounter request_count("RequestCount");
 
   while (FCGX_Accept_r(&wrap) >= 0) {
-    // PTIME(pt, "accept", false, 100);
+    base::ptime pt("", false);
 
     Request* q = new Request();
     if (!q->Init(wrap.in, wrap.envp)) {
@@ -146,6 +144,8 @@ void FastcgiProc(FrameWork* fw, int fd) {
     Response* p = new Response(wrap.out, wrap.err);
 
     HttpStatusCode rc = fw->Process(q, p);
+
+    LOG(INFO) << pt.wall_clock() << " " << rc << " " << request->url();
 
     request_count.Increment();
 
@@ -233,7 +233,7 @@ int FastcgiMain(int thread_count, int fd, const char * log_filename) {
   LOG_ASSERT(ret == 0) << "FCGX_Init result " << ret;
 
   boost::thread_group g;
-  for (int i=0; i<thread_count; ++i)
+  for (int i=1; i<thread_count; ++i)
     g.add_thread(new boost::thread(
       boost::bind(&FastcgiProc, fw.get(), fd)
     ));
