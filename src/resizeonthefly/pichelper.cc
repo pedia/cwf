@@ -80,7 +80,9 @@ bool AutoImage::Init(const char* buf, int size) {
     return false;
   }
 
-  Set(img);  
+  DestroyImageInfo(imginfo);
+
+  Set(img);
   return true;
 }
 
