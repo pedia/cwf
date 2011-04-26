@@ -120,11 +120,13 @@ bool AutoImage::WriteToBlob(char ** bufptr, int * size) {
       imginfo->quality = q;
   }
 
-  imginfo->attributes = CloneImage(img_, 0, 0, 1, &ec);
-  if (imginfo->attributes) {
-    MagickPassFail fail = CloneImageAttributes(imginfo->attributes, img_);
-   // TODO: check fail
-  }
+  // EXIF 信息
+  // TODO: 有内存泄漏
+//   imginfo->attributes = CloneImage(img_, 0, 0, 1, &ec);
+//   if (imginfo->attributes) {
+//     MagickPassFail fail = CloneImageAttributes(imginfo->attributes, img_);
+//    // TODO: check fail
+//   }
 #else
   // jpeg:preserve-settings操作复杂, 貌似没有太大作用
   AddDefinitions(imginfo, "jpeg:preserve-settings=1", &ec);

@@ -5,6 +5,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/socket.h>
 #endif
 
 #include <boost/foreach.hpp>
@@ -16,6 +17,7 @@
 #include "base3/logging.h"
 #include "base3/startuplist.h"
 #include "base3/ptime.h"
+#include "base3/signals.h"
 #include "base3/metrics/stats_counters.h"
 #include "base3/logging.h"
 
@@ -126,6 +128,20 @@ void FrameWork::ResponseError(Response* response, HttpStatusCode code, const cha
   response->OutputHeader();
 }
 
+bool quit_ = false;
+int sock_ = 0;
+
+void SignalQuit(int) {
+  quit_ = true;
+
+#if defined(OS_LINUX)
+  // exit(0);
+  int f = socket(PF_INET, SOCK_STREAM, 0);
+  connect(sock_, 0, 0);
+  close(f);
+#endif
+}
+
 void FastcgiProc(FrameWork* fw, int fd) {
   FCGX_Request wrap;
   int ret = FCGX_InitRequest(&wrap, fd, 0);
@@ -133,7 +149,7 @@ void FastcgiProc(FrameWork* fw, int fd) {
 
   base::StatsCounter request_count("RequestCount");
 
-  while (FCGX_Accept_r(&wrap) >= 0) {
+  while (!quit_ && FCGX_Accept_r(&wrap) >= 0) {
     base::ptime pt("", false);
 
     Request* q = new Request();
@@ -143,7 +159,12 @@ void FastcgiProc(FrameWork* fw, int fd) {
 
     Response* p = new Response(wrap.out, wrap.err);
 
-    HttpStatusCode rc = fw->Process(q, p);
+    HttpStatusCode rc = HC_SERVICE_UNAVAILABLE;
+    try {
+      rc = fw->Process(q, p);
+    } catch(...) {
+      LOG(ERROR) << "Process failed"; // TODO: log stack trace
+    }
 
     LOG(INFO) << pt.wall_clock() << " " << rc << " " << q->url();
 
@@ -152,6 +173,8 @@ void FastcgiProc(FrameWork* fw, int fd) {
     delete p;
     delete q;
   }
+
+  FCGX_Finish_r(&wrap);
 }
 
 extern void InstallDefaultAction();
@@ -165,61 +188,17 @@ int FastcgiMain(int thread_count, int fd, const char * log_filename) {
 
     // pid, thread_id, timestamp, tickcount
     SetLogItems(true, true, true, false);
-
-    // LOG(ERROR) << "log level " << GetMinLogLevel();
   }
 
   base::RunStartupList();
 
-// #if defined(POSIX) || defined(OS_LINUX)
-//   // find cwf log directory, if you are root user, then /data/cwf/logs, else $HOME/cwf/logs, that's it!
-//   struct passwd* pw;
-//   pw = getpwuid(getuid());
-//   log_dir = (0==strcmp(pw->pw_name, "root")) ? "/data" : pw->pw_dir;
-// #endif
-
-#if 0
-  {
-    std::ostringstream ostem;
-    if (log_dir) 
-      ostem << log_dir << "/cwf/logs/" << getpid() << "/";
-    else
-      ostem << "/data/cwf/logs/" << getpid() << "/";
-		
-    // base::LogRotate::instance().Start(ostem.str(), xce::INFO);
-  }
+#if defined(OS_LINUX)
+  base::InstallSignal(SIGINT, SignalQuit);
 #endif
-
-  // logging::InitLogging("/data/plate/log", logging::LOG_ONLY_TO_FILE
-  //  , logging::DONT_LOCK_LOG_FILE, logging::APPEND_TO_OLD_LOG_FILE);
-
-#if 0
-  {
-    LOG(INFO) << "xar::start";
-    std::ostringstream ostem;
-    if (log_dir) 
-      ostem << log_dir << "/cwf/logs/xar.cwf." << getpid();
-    else
-      ostem << "/data/cwf/logs/xar.cwf." << getpid();
-		
-    // xce::xar::instance().set_filename(ostem.str());
-    // xce::xar::start();
-  }
-#endif
-
-  // FrameWork::RegisterAction(new EmptyAction());
-  // FrameWork::RegisterAction(new TemplateAction());
-  // FrameWork::RegisterAction(new xce::FeedTypeAction);
-
-  // bool f = ctemplate::Template::StringToTemplateCache("404.tpl", "{{URL}} Not Found");
-  // ASSERT(f);
 
   std::auto_ptr<FrameWork> fw(new FrameWork());
   if (!fw->LoadConfig("cwf.conf")) {
     LOG(INFO) << "config load failed";
-    // ugly link hack
-    // xce::FeedTypeAction fta;
-    // xce::FriendlyTimeModifier ftm;
     LOG(ERROR) << "TODO: config error\n";
     return 1;
   }
@@ -231,6 +210,8 @@ int FastcgiMain(int thread_count, int fd, const char * log_filename) {
 
   int ret = FCGX_Init();
   LOG_ASSERT(ret == 0) << "FCGX_Init result " << ret;
+
+  sock_ = fd;
 
   boost::thread_group g;
   for (int i=1; i<thread_count; ++i)
