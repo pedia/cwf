@@ -160,7 +160,7 @@ int FastcgiConnect(const char *addr, unsigned short port, const char *unixsocket
 
 namespace cwf {
 
-static int bind_socket(const char *addr, unsigned short port, const char *unixsocket, uid_t uid, gid_t gid, int mode) {
+int bind_socket(const char *addr, unsigned short port, const char *unixsocket, uid_t uid, gid_t gid, int mode) {
   int fcgi_fd, socket_type, val;
 
   struct sockaddr_un fcgi_addr_un;

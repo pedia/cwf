@@ -1,9 +1,23 @@
 #include <iostream>
 #include <fstream>
 
-// #include "base3/common.h"
+// TODO: include fastcgi.h
+#define FCGI_LISTENSOCK_FILENO 0
+
+#if defined(OS_LINUX)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+# include <sys/socket.h>
+# include <sys/ioctl.h>
+# include <netinet/in.h>
+# include <sys/un.h>
+# include <sys/wait.h>
+#endif
+
 #include "base3/getopt_.h"
 #include "base3/logging.h"
+#include "base3/signals.h"
 #include "base3/startuplist.h"
 
 #include "cwf/frame.h"
@@ -40,6 +54,198 @@ static void show_help () {
   );
 }
 
+void OpenLogger(const char * log_filename) {
+  using namespace logging;
+  InitLogging(log_filename, LOG_ONLY_TO_FILE
+    , DONT_LOCK_LOG_FILE
+    , APPEND_TO_OLD_LOG_FILE);
+
+  // pid, thread_id, timestamp, tickcount
+  SetLogItems(true, true, true, false);
+}
+
+#if defined(OS_LINUX)
+int Daemon() {
+  switch (fork()) {
+    case -1:
+      PLOG(ERROR) << "fork() failed";
+      return -1;
+
+    case 0:
+      break;
+
+    default:
+      exit(0);
+  }
+
+  pid_t pid = getpid();
+
+  if (setsid() == -1) {
+    PLOG(ERROR) << "setsid() failed";
+    return -1;
+  }
+
+  umask(0);
+
+  int fd = open("/dev/null", O_RDWR);
+  if (fd == -1) {
+    PLOG(ERROR) << "open(\"/dev/null\") failed";
+    return -1;
+  }
+
+  if (dup2(fd, STDIN_FILENO) == -1) {
+    PLOG(ERROR) << "dup2(STDIN) failed";
+    return -1;
+  }
+
+  if (dup2(fd, STDOUT_FILENO) == -1) {
+    PLOG(ERROR) << "dup2(STDOUT) failed";
+    return -1;
+  }
+
+  if (dup2(fd, STDERR_FILENO) == -1) {
+    LOG(ERROR) << "dup2(STDERR) failed";
+    return -1;
+  }
+
+#if 0
+  if (fd > STDERR_FILENO) {
+    if (close(fd) == -1) {
+      LOG(ERROR) << "close() failed";
+      return -1;
+    }
+  }
+#endif
+
+  return 0;
+}
+
+// return 1 for child
+// return 0 for parent
+int Fork(int fcgi_fd, int thread_count, const char * log_filename) {
+  int rc = 0;
+  pid_t child = fork();
+
+  if (-1 == child) {
+    PLOG(ERROR) << "master fork failed";
+    return -1;
+  }
+
+  // parent
+  if (child) {
+    struct timeval tv = { 0, 100 * 1000 };
+    select(0, NULL, NULL, NULL, &tv);
+
+    int status = 0;
+    switch (waitpid(child, &status, WNOHANG)) {
+      case 0:
+        LOG(INFO) << "child spawned successfully, PID: " << child;
+        break;
+
+      default:
+        if (WIFEXITED(status))
+          LOG(INFO) << "child exited with: " << WEXITSTATUS(status);
+        else if (WIFSIGNALED(status))
+          LOG(INFO) << "child signaled: " << WTERMSIG(status);
+        else
+          LOG(INFO) << "child died somehow: exit status = " << status;
+    }
+    return 0;
+  }
+
+  // child
+  if (0 == child) {
+    // ChildrenCycle for reopen log, quit
+    LOG(INFO) << "child proccess begin";
+
+    if(fcgi_fd != FCGI_LISTENSOCK_FILENO) {
+      // LOG(INFO) << "change FCGI_LISTENSOCK_FILENO";
+      close(FCGI_LISTENSOCK_FILENO);
+      dup2(fcgi_fd, FCGI_LISTENSOCK_FILENO);
+      close(fcgi_fd);
+
+      fcgi_fd = FCGI_LISTENSOCK_FILENO;
+    }
+
+    // we don't need the client socket 
+//     for (int i = 3; i < max_fd; i++) {
+//       if (i != FCGI_LISTENSOCK_FILENO) close(i);
+//     }
+
+    cwf::FastcgiMain(thread_count, fcgi_fd);
+    return 1;
+  }
+
+  return rc;
+}
+
+volatile int fork_count_ = 0;
+
+void SignalChildren(int) {
+  fork_count_ = 1;
+
+  int status = 0;
+  for (;;) {
+    int pid = waitpid(-1, &status, WNOHANG);
+    if (0 == pid)
+      return;
+
+    if (-1 == pid) {
+      PLOG(INFO) << "master waitpid"; // TODO: errno = EINTR, ECHLD
+      return;
+    }
+
+    if (WIFEXITED(status))
+      LOG(INFO) << "master waitpid: " << WEXITSTATUS(status);
+    else if (WIFSIGNALED(status))
+      LOG(INFO) << "master waitpid: " << WTERMSIG(status);
+    else
+      LOG(INFO) << "master waitpid: exit status = " << status;
+  }
+}
+
+volatile int quit_ = 0;
+
+void SignalTerminate(int) {
+  quit_ = 1;
+}
+
+int MasterCycle(int thread_count, int fcgi_fd, const char * log_filename) {
+  base::InstallSignal(SIGCHLD, SignalChildren);
+  base::InstallSignal(SIGTERM, SignalTerminate);
+
+  sigset_t           set;
+  sigemptyset(&set);
+  sigaddset(&set, SIGCHLD);
+  sigaddset(&set, SIGALRM);
+  sigaddset(&set, SIGINT);
+  sigaddset(&set, SIGHUP);
+  sigaddset(&set, SIGTERM);
+
+  while (true) {
+    int ret = pause();
+    LOG(INFO) << "supspend once" << ret;
+
+    if (fork_count_) {
+      int child = Fork(fcgi_fd, thread_count, log_filename);
+      if (1 == child)
+        return 0;
+
+      fork_count_ = 0;
+    }
+
+    if (quit_) {
+      // quit children
+
+      LOG(INFO) << "normal quit";
+      break;
+    }
+  }
+
+  return 0;
+}
+#endif
+
 int main(int argc, char* argv[]) {
   int port = 3000;
   const char * addr = "0.0.0.0";
@@ -48,12 +254,12 @@ int main(int argc, char* argv[]) {
   char * fcgi_dir = 0;
   char * log_filename = 0;
   int thread_count = 0;
-
+  int nofork = 0;
   int fork_count = 0;
 
   int o;
 
-  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:l:s:?he"))) {
+  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:l:s:?hen"))) {
     switch(o) {
     case 'e' : 
       // disable std::err log
@@ -85,7 +291,7 @@ int main(int argc, char* argv[]) {
 //    case 'G': if (i_am_root) { sockgroupname = optarg; } /* set socket group */ break;
 //    case 'S': if (i_am_root) { sockbeforechroot = 1; } /* open socket before chroot() */ break;
     case 'M': sockmode = strtol(optarg, NULL, 0); /* set socket mode */ break;
-//    case 'n': nofork = 1; break;
+    case 'n': nofork = 1; break;
 //    case 'P': pid_file = optarg; /* PID file */ break;
 //    case 'v': show_version(); return 0;
     case '?':
@@ -96,6 +302,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  OpenLogger(log_filename);
+
 #if defined(POSIX) || defined(OS_LINUX)
   if (fcgi_dir && -1 == chdir(fcgi_dir)) {
     fprintf(stderr, "spawn-fcgi: chdir('%s') failed: %s\n", fcgi_dir, strerror(errno));
@@ -103,6 +311,36 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
+  // socket
+#if defined(OS_LINUX)
+  int fcgi_fd = cwf::bind_socket(addr, port, unixsocket, 0, 0, sockmode);
+#elif defined(OS_WIN)
+  int fcgi_fd = cwf::Connection(addr, port, unixsocket);
+#endif
+  if (-1 == fcgi_fd) {
+    PLOG(ERROR) << "socket error";
+    return -1;
+  }
+
+#if defined(OS_LINUX)
+  if (!nofork && 0 != Daemon())
+    return -1;
+
+  if (fork_count) {
+    int c = fork_count;
+    while (c--) {
+      int child = Fork(fcgi_fd, thread_count, log_filename);
+      if (1 == child)
+        return 0;
+    }
+
+    return MasterCycle(thread_count, fcgi_fd, log_filename);
+  }
+#endif
+
+  return cwf::FastcgiMain(thread_count, fcgi_fd, log_filename);
+
+#if 0
   int rc = cwf::FastcgiConnect(addr, port, unixsocket, sockmode, fork_count);
 #if defined(POSIX) || defined(OS_LINUX)
   // rc = 0 表示parent 执行成功
@@ -117,6 +355,5 @@ int main(int argc, char* argv[]) {
     return cwf::FastcgiMain(thread_count, 0, log_filename);
   }
 #endif
-
-  return cwf::FastcgiMain(thread_count, rc, log_filename);
+#endif
 }

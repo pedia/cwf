@@ -128,28 +128,29 @@ void FrameWork::ResponseError(Response* response, HttpStatusCode code, const cha
   response->OutputHeader();
 }
 
-bool quit_ = false;
-int sock_ = 0;
+static bool quit_ = false;
+static int sock_ = 0;
 
 void SignalQuit(int) {
   quit_ = true;
 
 #if defined(OS_LINUX)
   // exit(0);
-  int f = socket(PF_INET, SOCK_STREAM, 0);
-  connect(sock_, 0, 0);
-  close(f);
+  // TODO: not work below
+  // int f = socket(PF_INET, SOCK_STREAM, 0);
+  // connect(sock_, 0, 0);
+  // close(f);
 #endif
 }
 
 void FastcgiProc(FrameWork* fw, int fd) {
   FCGX_Request wrap;
   int ret = FCGX_InitRequest(&wrap, fd, 0);
-  ASSERT(0 == ret);
+  LOG_ASSERT(0 == ret) << "FCGX_InitRequest failed";
 
   base::StatsCounter request_count("RequestCount");
 
-  while (!quit_ && FCGX_Accept_r(&wrap) >= 0) {
+  while (FCGX_Accept_r(&wrap) >= 0) {
     base::ptime pt("", false);
 
     Request* q = new Request();
@@ -172,6 +173,9 @@ void FastcgiProc(FrameWork* fw, int fd) {
 
     delete p;
     delete q;
+
+    if (quit_)
+      break;
   }
 
   FCGX_Finish_r(&wrap);
@@ -180,6 +184,8 @@ void FastcgiProc(FrameWork* fw, int fd) {
 extern void InstallDefaultAction();
 
 int FastcgiMain(int thread_count, int fd, const char * log_filename) {
+#if 0
+  // TODO: remove, not need anymore
   if (log_filename) {
     using namespace logging;
     InitLogging(log_filename, LOG_ONLY_TO_FILE
@@ -189,6 +195,7 @@ int FastcgiMain(int thread_count, int fd, const char * log_filename) {
     // pid, thread_id, timestamp, tickcount
     SetLogItems(true, true, true, false);
   }
+#endif
 
   base::RunStartupList();
 
@@ -220,6 +227,7 @@ int FastcgiMain(int thread_count, int fd, const char * log_filename) {
     ));
 
   FastcgiProc(fw.get(), fd); // TODO: 管理 ....
+  LOG(INFO) << "FastcgiMain quit";
   return 0;
 }
 
