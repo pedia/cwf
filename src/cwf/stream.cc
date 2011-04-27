@@ -202,16 +202,19 @@ bool Request::Init(FCGX_Stream* in, FCGX_ParamArray envp) {
       // Content-Type: text/html; charset=ISO-8859-4
       std::string type = header("CONTENT_TYPE");
       // DCHECK(!type.empty());
-      if (type == "application/x-www-form-urlencoded")
-        form_ = ParseQuery(data);
-      else {
-        std::string part_type;
-        {
-          std::string::size_type pos = type.find_first_of(';');
-          if (std::string::npos != pos)
-            part_type = type.substr(0, pos);
 
-          if (part_type == "multipart/form-data" || type == "multipart/form-data") {
+      std::string part_type;
+      std::string::size_type pos = type.find_first_of(';');
+      if (std::string::npos != pos)
+        part_type = type.substr(0, pos);
+      else
+        part_type = type;
+
+      if (part_type == "application/x-www-form-urlencoded") {
+        form_ = ParseQuery(data);
+      } else {
+        {
+          if (part_type == "multipart/form-data" || part_type == "multipart/form-data") {
             DispositionArrayType arr = ParseMultipartForm(type, data);
             for (DispositionArrayType::const_iterator i=arr.begin(); 
               i!=arr.end(); ++i) {
@@ -223,7 +226,7 @@ bool Request::Init(FCGX_Stream* in, FCGX_ParamArray envp) {
                   file_array_.push_back(afd);
             }
           }
-          else if (part_type == "application/octet-stream" || type == "application/octet-stream") {
+          else if (part_type == "application/octet-stream" || part_type == "application/octet-stream") {
             FormDisposition fd = ParseOctetStream(data);
             if (!fd.data.empty()) {
               fd.name = "noname"; // TODO:
@@ -316,8 +319,12 @@ Request::FormDisposition ParseDisposition(const std::string & text
         std::string::size_type par_pos = name_end;
         do {
           std::string::size_type par_start = text.find("; ", par_pos);
+          if (par_start > cr - 5) // 其后至少4字符
+             break;
           std::string::size_type par_end = text.find("=", par_start);
-          std::string::size_type value_end = text.find(";", par_end);
+          if (par_end > cr - 2) // 其后至少1字符
+             break;
+          std::string::size_type value_end = text.find("; ", par_end);
           if (value_end > cr)
             value_end = cr;
 

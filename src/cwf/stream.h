@@ -67,6 +67,13 @@ struct Request {
     return kEmptyString;
   }
 
+  const StringMap& querys() const {
+    return query_;
+  }
+  const StringMap& forms() const {
+    return form_;
+  }
+
   int form(const char*key, int default_value) const;
 
   const std::string& get(const char* key) const {
