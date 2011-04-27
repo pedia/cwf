@@ -1,3 +1,5 @@
+#include <cstdio>
+#include <vector>
 #include <iostream>
 #include <fstream>
 
@@ -120,8 +122,58 @@ int Daemon() {
   return 0;
 }
 
-// return 1 for child
-// return 0 for parent
+volatile int fork_count_ = 0;
+volatile int quit_ = 0;
+std::vector<int> * children_ = 0;
+
+void SignalTerminate(int) {
+  quit_ = 1;
+
+  if (children_) {
+    for (int i=0; i<children_->size(); ++i) {
+      int pid = children_->at(i);
+      kill(pid, SIGINT);
+    }
+  }
+}
+
+void SignalReopen(int) {
+  logging::ReopenLogFile();
+
+  if (children_) {
+    for (int i=0; i<children_->size(); ++i) {
+      int pid = children_->at(i);
+      kill(pid, SIGUSR1);
+    }
+  }
+}
+
+void SignalChildren(int) {
+  fork_count_ = 1;
+
+  int status = 0;
+  for (;;) {
+    int pid = waitpid(-1, &status, WNOHANG);
+    if (0 == pid)
+      return;
+
+    if (-1 == pid) {
+      PLOG(INFO) << "master waitpid"; // TODO: errno = EINTR, ECHLD
+      return;
+    }
+
+    if (WIFEXITED(status))
+      LOG(INFO) << "master waitpid: " << WEXITSTATUS(status);
+    else if (WIFSIGNALED(status))
+      LOG(INFO) << "master waitpid: " << WTERMSIG(status);
+    else
+      LOG(INFO) << "master waitpid: exit status = " << status;
+  }
+}
+
+// return > 1 for child pid
+// return 0 for child
+// return < 0 for error
 int Fork(int fcgi_fd, int thread_count, const char * log_filename) {
   int rc = 0;
   pid_t child = fork();
@@ -150,7 +202,7 @@ int Fork(int fcgi_fd, int thread_count, const char * log_filename) {
         else
           LOG(INFO) << "child died somehow: exit status = " << status;
     }
-    return 0;
+    return child;
   }
 
   // child
@@ -167,52 +219,23 @@ int Fork(int fcgi_fd, int thread_count, const char * log_filename) {
       fcgi_fd = FCGI_LISTENSOCK_FILENO;
     }
 
-    // we don't need the client socket 
-//     for (int i = 3; i < max_fd; i++) {
-//       if (i != FCGI_LISTENSOCK_FILENO) close(i);
-//     }
+    base::InstallSignal(SIGUSR1, SignalReopen);
 
+    // 子进程退出在frame.cc里实现
     cwf::FastcgiMain(thread_count, fcgi_fd);
-    return 1;
+    return 0;
   }
 
   return rc;
 }
 
-volatile int fork_count_ = 0;
-
-void SignalChildren(int) {
-  fork_count_ = 1;
-
-  int status = 0;
-  for (;;) {
-    int pid = waitpid(-1, &status, WNOHANG);
-    if (0 == pid)
-      return;
-
-    if (-1 == pid) {
-      PLOG(INFO) << "master waitpid"; // TODO: errno = EINTR, ECHLD
-      return;
-    }
-
-    if (WIFEXITED(status))
-      LOG(INFO) << "master waitpid: " << WEXITSTATUS(status);
-    else if (WIFSIGNALED(status))
-      LOG(INFO) << "master waitpid: " << WTERMSIG(status);
-    else
-      LOG(INFO) << "master waitpid: exit status = " << status;
-  }
-}
-
-volatile int quit_ = 0;
-
-void SignalTerminate(int) {
-  quit_ = 1;
-}
-
 int MasterCycle(int thread_count, int fcgi_fd, const char * log_filename) {
   base::InstallSignal(SIGCHLD, SignalChildren);
+
+  base::InstallSignal(SIGINT, SignalTerminate);
   base::InstallSignal(SIGTERM, SignalTerminate);
+
+  base::InstallSignal(SIGUSR1, SignalReopen);
 
   sigset_t           set;
   sigemptyset(&set);
@@ -228,8 +251,10 @@ int MasterCycle(int thread_count, int fcgi_fd, const char * log_filename) {
 
     if (fork_count_) {
       int child = Fork(fcgi_fd, thread_count, log_filename);
-      if (1 == child)
+      if (0 == child)
         return 0;
+
+      children_->push_back(child);
 
       fork_count_ = 0;
     }
@@ -253,13 +278,14 @@ int main(int argc, char* argv[]) {
   int sockmode = 0; // 缺省值从 -1 改为 0 了
   char * fcgi_dir = 0;
   char * log_filename = 0;
+  char * pid_file = 0;
   int thread_count = 0;
   int nofork = 0;
   int fork_count = 0;
 
   int o;
 
-  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:l:s:?hen"))) {
+  while (-1 != (o = getopt(argc, argv, "a:d:F:M:p:t:l:s:P:?hen"))) {
     switch(o) {
     case 'e' : 
       // disable std::err log
@@ -292,7 +318,7 @@ int main(int argc, char* argv[]) {
 //    case 'S': if (i_am_root) { sockbeforechroot = 1; } /* open socket before chroot() */ break;
     case 'M': sockmode = strtol(optarg, NULL, 0); /* set socket mode */ break;
     case 'n': nofork = 1; break;
-//    case 'P': pid_file = optarg; /* PID file */ break;
+    case 'P': pid_file = optarg; /* PID file */ break;
 //    case 'v': show_version(); return 0;
     case '?':
     case 'h': show_help(); return 0;
@@ -326,13 +352,26 @@ int main(int argc, char* argv[]) {
   if (!nofork && 0 != Daemon())
     return -1;
 
+  if (pid_file) {
+    std::ofstream pidfile(pid_file);
+    if (pidfile)
+      pidfile << getpid() << "\n";
+  }
+
   if (fork_count) {
+    std::vector<int> children;
+
     int c = fork_count;
     while (c--) {
       int child = Fork(fcgi_fd, thread_count, log_filename);
-      if (1 == child)
+      if (0 == child)
         return 0;
+
+      children.push_back(child);
     }
+
+    children_ = new std::vector<int>();
+    children_->swap(children);
 
     return MasterCycle(thread_count, fcgi_fd, log_filename);
   }

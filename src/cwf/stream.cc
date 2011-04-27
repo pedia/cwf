@@ -203,6 +203,7 @@ bool Request::Init(FCGX_Stream* in, FCGX_ParamArray envp) {
       std::string type = header("CONTENT_TYPE");
       // DCHECK(!type.empty());
 
+      // application/x-www-form-urlencoded; utf8
       std::string part_type;
       std::string::size_type pos = type.find_first_of(';');
       if (std::string::npos != pos)
@@ -213,25 +214,23 @@ bool Request::Init(FCGX_Stream* in, FCGX_ParamArray envp) {
       if (part_type == "application/x-www-form-urlencoded") {
         form_ = ParseQuery(data);
       } else {
-        {
-          if (part_type == "multipart/form-data" || part_type == "multipart/form-data") {
-            DispositionArrayType arr = ParseMultipartForm(type, data);
-            for (DispositionArrayType::const_iterator i=arr.begin(); 
-              i!=arr.end(); ++i) {
-                const FormDisposition & afd = *i;
-                
-                if (afd.filename.empty()) // ugly: 如果为空，是普通字段, 合并至 form_
-                  form_.insert(std::make_pair(afd.name, afd.data));
-                else
-                  file_array_.push_back(afd);
-            }
+        if (part_type == "multipart/form-data") {
+          DispositionArrayType arr = ParseMultipartForm(type, data);
+          for (DispositionArrayType::const_iterator i=arr.begin(); 
+            i!=arr.end(); ++i) {
+              const FormDisposition & afd = *i;
+              
+              if (afd.filename.empty()) // ugly: 如果为空，是普通字段, 合并至 form_
+                form_.insert(std::make_pair(afd.name, afd.data));
+              else
+                file_array_.push_back(afd);
           }
-          else if (part_type == "application/octet-stream" || part_type == "application/octet-stream") {
-            FormDisposition fd = ParseOctetStream(data);
-            if (!fd.data.empty()) {
-              fd.name = "noname"; // TODO:
-              file_array_.push_back(fd);
-            }
+        }
+        else if (part_type == "application/octet-stream") {
+          FormDisposition fd = ParseOctetStream(data);
+          if (!fd.data.empty()) {
+            fd.name = "noname"; // TODO:
+            file_array_.push_back(fd);
           }
         }
       }
@@ -319,7 +318,7 @@ Request::FormDisposition ParseDisposition(const std::string & text
         std::string::size_type par_pos = name_end;
         do {
           std::string::size_type par_start = text.find("; ", par_pos);
-          if (par_start > cr - 5) // 其后至少4字符
+          if (par_start > cr - 5) // 其后至少4字符，不设置可能导致死循环
              break;
           std::string::size_type par_end = text.find("=", par_start);
           if (par_end > cr - 2) // 其后至少1字符

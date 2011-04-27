@@ -201,6 +201,7 @@ int FastcgiMain(int thread_count, int fd, const char * log_filename) {
 
 #if defined(OS_LINUX)
   base::InstallSignal(SIGINT, SignalQuit);
+  base::InstallSignal(SIGTERM, SignalQuit);
 #endif
 
   std::auto_ptr<FrameWork> fw(new FrameWork());
