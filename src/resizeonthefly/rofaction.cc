@@ -159,7 +159,7 @@ struct ResizeAction : public cwf::BaseAction {
       PTIME(pt, "query orignal photo", true, false);
       bool f = HttpDownload(inner_url, &buf_for_image);
       if (!f)
-        return cwf::HC_SERVICE_UNAVAILABLE;
+        return cwf::HC_NOT_FOUND; // TODO: error detail
     }
 
     {
