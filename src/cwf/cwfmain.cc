@@ -57,6 +57,9 @@ static void show_help () {
 }
 
 void OpenLogger(const char * log_filename) {
+  if (!log_filename) // ugly check
+    return;
+
   using namespace logging;
   InitLogging(log_filename, LOG_ONLY_TO_FILE
     , DONT_LOCK_LOG_FILE
