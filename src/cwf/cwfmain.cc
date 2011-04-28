@@ -126,26 +126,28 @@ volatile int fork_count_ = 0;
 volatile int quit_ = 0;
 std::vector<int> * children_ = 0;
 
+void KillChildren(int sig) {
+  if (!children_) 
+    return;
+
+  for (std::vector<int>::const_iterator i=children_->begin();
+      i!=children_->end(); ++i) {
+    int pid = *i;
+    int ret = kill(pid, sig);
+    LOG(INFO) << "kill " << pid << " " << sig << " ret:" << ret;
+  }
+}
+
 void SignalTerminate(int) {
   quit_ = 1;
 
-  if (children_) {
-    for (int i=0; i<children_->size(); ++i) {
-      int pid = children_->at(i);
-      kill(pid, SIGINT);
-    }
-  }
+  KillChildren(SIGINT);
 }
 
 void SignalReopen(int) {
   logging::ReopenLogFile();
 
-  if (children_) {
-    for (int i=0; i<children_->size(); ++i) {
-      int pid = children_->at(i);
-      kill(pid, SIGUSR1);
-    }
-  }
+  KillChildren(SIGUSR1);
 }
 
 void SignalChildren(int) {
@@ -353,6 +355,7 @@ int main(int argc, char* argv[]) {
     return -1;
 
   if (pid_file) {
+    // TODO: open with CLOSE_REMOVE
     std::ofstream pidfile(pid_file);
     if (pidfile)
       pidfile << getpid() << "\n";
