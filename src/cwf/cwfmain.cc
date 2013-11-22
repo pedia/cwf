@@ -147,10 +147,6 @@ void SignalTerminate(int) {
   KillChildren(SIGKILL);
 }
 
-void SignalChildProcessExit(int) {
-  exit(0);
-}
-
 void SignalReopen(int) {
   logging::ReopenLogFile();
 
