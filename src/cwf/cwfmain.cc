@@ -1,5 +1,5 @@
 #include <cstdio>
-#include <vector>
+#include <list>
 #include <iostream>
 #include <fstream>
 
@@ -127,13 +127,13 @@ int Daemon() {
 
 volatile int fork_count_ = 0;
 volatile int quit_ = 0;
-std::vector<int> * children_ = 0;
+std::list<int> * children_ = 0;
 
 void KillChildren(int sig) {
   if (!children_) 
     return;
 
-  for (std::vector<int>::const_iterator i=children_->begin();
+  for (std::list<int>::const_iterator i=children_->begin();
       i!=children_->end(); ++i) {
     int pid = *i;
     int ret = kill(pid, sig);
@@ -144,7 +144,11 @@ void KillChildren(int sig) {
 void SignalTerminate(int) {
   quit_ = 1;
 
-  KillChildren(SIGINT);
+  KillChildren(SIGKILL);
+}
+
+void SignalChildProcessExit(int) {
+  exit(0);
 }
 
 void SignalReopen(int) {
@@ -154,7 +158,9 @@ void SignalReopen(int) {
 }
 
 void SignalChildren(int) {
-  fork_count_ = 1;
+  if (!quit_) {
+    fork_count_ = 1;
+  }
 
   int status = 0;
   for (;;) {
@@ -165,6 +171,10 @@ void SignalChildren(int) {
     if (-1 == pid) {
       PLOG(INFO) << "master waitpid"; // TODO: errno = EINTR, ECHLD
       return;
+    }
+
+    if (pid > 0) {
+      children_->remove(pid); // remove the child process which is already killed
     }
 
     if (WIFEXITED(status))
@@ -225,7 +235,7 @@ int Fork(int fcgi_fd, int thread_count, const char * log_filename) {
     }
 
     base::InstallSignal(SIGUSR1, SignalReopen);
-
+    base::InstallSignal(SIGTERM, SIG_IGN);
     // 子进程退出在frame.cc里实现
     cwf::FastcgiMain(thread_count, fcgi_fd);
     return 0;
@@ -365,7 +375,7 @@ int main(int argc, char* argv[]) {
   }
 
   if (fork_count) {
-    std::vector<int> children;
+    std::list<int> children;
 
     int c = fork_count;
     while (c--) {
@@ -376,7 +386,7 @@ int main(int argc, char* argv[]) {
       children.push_back(child);
     }
 
-    children_ = new std::vector<int>();
+    children_ = new std::list<int>();
     children_->swap(children);
 
     return MasterCycle(thread_count, fcgi_fd, log_filename);
